@@ -11,3 +11,7 @@ The VS Code extension and the PhpStorm plugin have their own changelogs in their
 ### Added
 
 - Repository layout, license and CodeIgniter 3 and 4 test fixtures.
+- VS Code: find `$this->load->view()` and `view()` calls and the variables they pass.
+- VS Code: guess variable types from literals, casts, `new`, parameters and local variables.
+- VS Code: merge the variables of a view loaded from several places.
+- VS Code: write and update the generated `@var` block at the top of a view.
