@@ -1,0 +1,6 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Placeholder: ViewSense only checks that this file exists to detect CodeIgniter 4.

@@ -1,0 +1,15 @@
+{
+    "name": "viewsense/fixture-ci4",
+    "description": "CodeIgniter 4 fixture for ViewSense tests. Never installed or run.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.1",
+        "codeigniter4/framework": "^4.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    }
+}
