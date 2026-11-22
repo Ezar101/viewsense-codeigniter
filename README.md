@@ -32,7 +32,7 @@ ViewSense finds these calls for you and tells your editor which variables each v
 ## Repository layout
 
 | Folder | Content |
-|--------|---------|
+| -------- | --------- |
 | [`vscode/`](vscode/) | VS Code extension (TypeScript) |
 | [`phpstorm/`](phpstorm/) | PhpStorm plugin (Kotlin) |
 | [`fixtures/`](fixtures/) | Small CodeIgniter 3 and 4 projects used by the automated tests |
