@@ -108,7 +108,8 @@ async function outdatedView(
     return null;
   }
   const lines = hintBlockLines(current) ?? { start: 0, end: 0 };
-  return { uri, range: new vscode.Range(lines.start, 0, lines.end, Number.MAX_SAFE_INTEGER) };
+  const lastLine = current.split('\n')[lines.end]?.replace(/\r$/, '') ?? '';
+  return { uri, range: new vscode.Range(lines.start, 0, lines.end, lastLine.length) };
 }
 
 /** Writes a file ViewSense owns, only when its content changed. Returns true when written. */
