@@ -31,6 +31,12 @@
     "php",
     "views"
   ],
+  "activationEvents": [
+    "workspaceContains:spark",
+    "workspaceContains:application/config/config.php",
+    "workspaceContains:system/core/CodeIgniter.php",
+    "workspaceContains:.viewsense.json"
+  ],
   "main": "./dist/extension.js",
   "capabilities": {
     "untrustedWorkspaces": {
@@ -54,7 +60,18 @@
         "fileMatch": ".viewsense.json",
         "url": "./schemas/viewsense.schema.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "ViewSense for CodeIgniter",
+      "properties": {
+        "viewsense.updateOnSave": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "markdownDescription": "Update the `@var` block of the views when you save a PHP file or `.viewsense.json`. When off, ViewSense only shows a warning on views whose block is out of date."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node esbuild.mjs",

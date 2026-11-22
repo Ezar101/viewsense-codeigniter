@@ -4,70 +4,32 @@ import { CONFIG_FILE, loadConfig } from '../core/project/config';
 import { detectProject } from '../core/project/detectProject';
 import { nodeProjectFiles } from '../core/project/projectFiles';
 import type { ViewVariables } from '../core/views/collectViewVariables';
-import { applyHintBlock } from '../core/views/hintBlock';
-
-const SHOW_LOG = 'Show Log';
-
-/** Result of writing the block into one view file. */
-type WriteResult = 'updated' | 'unchanged' | 'skipped';
+import { applyHintBlock, hintBlockLines } from '../core/views/hintBlock';
 
 /**
- * Command "ViewSense: Update View Hints": analyzes each CodeIgniter project of the workspace
- * and updates the generated block of every view.
+ * - `write`: update the block of every view, and the generated files.
+ * - `check`: change nothing, only list the views whose block isn't up to date.
  */
-export async function updateViewHints(log: vscode.LogOutputChannel): Promise<void> {
-  // ViewSense reads files with Node.js, so it only works on folders on disk.
-  const folders = (vscode.workspace.workspaceFolders ?? []).filter(
-    (folder) => folder.uri.scheme === 'file',
-  );
+export type SyncMode = 'write' | 'check';
 
-  const summary = await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: 'ViewSense: updating view hints' },
-    async () => {
-      let projects = 0;
-      let updated = 0;
-      let configProblems = 0;
-      for (const folder of folders) {
-        const result = await updateFolder(folder, log);
-        if (result !== null) {
-          projects += 1;
-          updated += result.updated;
-          configProblems += result.configProblems;
-        }
-      }
-      return { projects, updated, configProblems };
-    },
-  );
-
-  if (summary.projects === 0) {
-    void vscode.window.showWarningMessage(
-      'ViewSense: no CodeIgniter 3 or 4 project found in this workspace.',
-    );
-    return;
-  }
-
-  const views = summary.updated === 1 ? 'view' : 'views';
-  const message = `ViewSense: updated ${String(summary.updated)} ${views}.`;
-  const choice =
-    summary.configProblems > 0
-      ? await vscode.window.showWarningMessage(
-          `${message} ${CONFIG_FILE} has problems: see the log.`,
-          SHOW_LOG,
-        )
-      : await vscode.window.showInformationMessage(message, SHOW_LOG);
-  if (choice === SHOW_LOG) {
-    log.show();
-  }
+export interface OutdatedView {
+  readonly uri: vscode.Uri;
+  /** Lines of the current block, or the first line when the view has no block yet. */
+  readonly range: vscode.Range;
 }
 
-/**
- * Updates the views of one workspace folder. Returns the number of updated views and of
- * problems in `.viewsense.json`, or `null` when the folder isn't a CodeIgniter project.
- */
-async function updateFolder(
+export interface SyncResult {
+  readonly updated: number;
+  readonly configProblems: number;
+  readonly outdated: readonly OutdatedView[];
+}
+
+/** Analyzes one workspace folder. Returns `null` when it isn't a CodeIgniter project. */
+export async function syncFolder(
   folder: vscode.WorkspaceFolder,
   log: vscode.LogOutputChannel,
-): Promise<{ updated: number; configProblems: number } | null> {
+  mode: SyncMode,
+): Promise<SyncResult | null> {
   const files = nodeProjectFiles(folder.uri.fsPath);
   const { config, problems } = await loadConfig(files);
   for (const problem of problems) {
@@ -76,26 +38,39 @@ async function updateFolder(
 
   const project = await detectProject(files, config);
   if (project === null) {
-    log.info(`${folder.name}: no CodeIgniter project found`);
+    log.debug(`${folder.name}: no CodeIgniter project found`);
     return null;
   }
 
-  log.info(`${folder.name}: CodeIgniter ${String(project.version)} project`);
+  const started = Date.now();
   const analysis = await analyzeProject(project, files);
+  log.info(
+    `${folder.name}: CodeIgniter ${String(project.version)} project analyzed in ${String(Date.now() - started)} ms`,
+  );
   for (const view of analysis.missingViews) {
     log.warn(`${folder.name}: no file found for the view '${view}'`);
   }
 
-  for (const [path, content] of analysis.generatedFiles) {
-    const uri = vscode.Uri.joinPath(folder.uri, ...path.split('/'));
-    if (await writeGeneratedFile(uri, content)) {
-      log.info(`${folder.name}: generated ${path}`);
+  if (mode === 'write') {
+    for (const [path, content] of analysis.generatedFiles) {
+      if (await writeGeneratedFile(uriOf(folder, path), content)) {
+        log.info(`${folder.name}: generated ${path}`);
+      }
     }
   }
 
   let updated = 0;
+  const outdated: OutdatedView[] = [];
   for (const [path, variables] of analysis.views) {
-    const uri = vscode.Uri.joinPath(folder.uri, ...path.split('/'));
+    const uri = uriOf(folder, path);
+    if (mode === 'check') {
+      const view = await outdatedView(uri, variables);
+      if (view !== null) {
+        outdated.push(view);
+      }
+      continue;
+    }
+
     const result = await writeHintBlock(uri, variables);
     if (result === 'updated') {
       updated += 1;
@@ -104,7 +79,36 @@ async function updateFolder(
       log.warn(`${folder.name}: skipped ${path} because it isn't a UTF-8 file`);
     }
   }
-  return { updated, configProblems: problems.length };
+  return { updated, configProblems: problems.length, outdated };
+}
+
+function uriOf(folder: vscode.WorkspaceFolder, path: string): vscode.Uri {
+  return vscode.Uri.joinPath(folder.uri, ...path.split('/'));
+}
+
+/** Current text of a view: the editor content when it's open, else the file on disk. */
+async function readView(uri: vscode.Uri): Promise<string | null> {
+  const openDocument = findOpenDocument(uri);
+  if (openDocument !== undefined) {
+    return openDocument.getText();
+  }
+  try {
+    return decodeUtf8(await vscode.workspace.fs.readFile(uri));
+  } catch {
+    return null;
+  }
+}
+
+async function outdatedView(
+  uri: vscode.Uri,
+  variables: ViewVariables,
+): Promise<OutdatedView | null> {
+  const current = await readView(uri);
+  if (current === null || applyHintBlock(current, variables) === current) {
+    return null;
+  }
+  const lines = hintBlockLines(current) ?? { start: 0, end: 0 };
+  return { uri, range: new vscode.Range(lines.start, 0, lines.end, Number.MAX_SAFE_INTEGER) };
 }
 
 /** Writes a file ViewSense owns, only when its content changed. Returns true when written. */
@@ -121,11 +125,12 @@ async function writeGeneratedFile(uri: vscode.Uri, content: string): Promise<boo
   return true;
 }
 
+/** Result of writing the block into one view file. */
+type WriteResult = 'updated' | 'unchanged' | 'skipped';
+
 async function writeHintBlock(uri: vscode.Uri, variables: ViewVariables): Promise<WriteResult> {
   // A view with unsaved changes: edit the editor content, so those changes aren't lost.
-  const openDocument = vscode.workspace.textDocuments.find(
-    (document) => document.uri.toString() === uri.toString(),
-  );
+  const openDocument = findOpenDocument(uri);
   if (openDocument?.isDirty === true) {
     return (await editDocument(openDocument, variables)) ? 'updated' : 'unchanged';
   }
@@ -140,6 +145,12 @@ async function writeHintBlock(uri: vscode.Uri, variables: ViewVariables): Promis
   }
   await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(next));
   return 'updated';
+}
+
+function findOpenDocument(uri: vscode.Uri): vscode.TextDocument | undefined {
+  return vscode.workspace.textDocuments.find(
+    (document) => document.uri.toString() === uri.toString(),
+  );
 }
 
 async function editDocument(
