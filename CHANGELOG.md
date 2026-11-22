@@ -15,3 +15,4 @@ The VS Code extension and the PhpStorm plugin have their own changelogs in their
 - VS Code: guess variable types from literals, casts, `new`, parameters and local variables.
 - VS Code: merge the variables of a view loaded from several places.
 - VS Code: write and update the generated `@var` block at the top of a view.
+- VS Code: "ViewSense: Update View Hints" command for CodeIgniter 3 and 4 projects.
