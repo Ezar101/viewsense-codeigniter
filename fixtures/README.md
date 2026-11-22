@@ -12,7 +12,7 @@ the same situation.
 Detected through `application/config/config.php`.
 
 | Case | Where |
-|------|-------|
+| ------ | ------- |
 | `$data['key'] = ...` then `$this->load->view()` | `Products::index()` |
 | Inline array passed to `$this->load->view()` | `Products::show()` |
 | Custom render method that wraps a layout | `MY_Controller::render()`, used by `Products::create()` |
@@ -32,7 +32,7 @@ Detected through `application/config/config.php`.
 Detected through the `spark` file and `codeigniter4/framework` in `composer.json`.
 
 | Case | Where |
-|------|-------|
+| ------ | ------- |
 | `return view()` with an inline array | `Products::index()` |
 | `$data['key'] = ...` then `view()` | `Products::show()` |
 | `setVar()` and `setData()` on the renderer service | `Products::create()` |
