@@ -34,3 +34,21 @@ about 1 MB.
 
 **Consequences.** The parser stays behind a small internal interface, so you can replace it
 later without touching the rest of the code.
+
+## 3. `$this` in CodeIgniter 3 views: a generated class
+
+**Context.** In a CodeIgniter 3 view, `$this` is the loader (`CI_Loader`). Through its magic
+`__get()`, it also gives access to everything the controller can reach: `$this->session`,
+loaded models and libraries. No existing class describes that.
+
+**Decision.** Generate `.viewsense/ci3_view.php` with a `ViewSense_CI3_View` class that extends
+`CI_Loader` and lists these properties with `@property`. Views that use `$this` get
+`/** @var ViewSense_CI3_View $this */`.
+
+**Why.** A PHP language server can only learn about properties from a class. One class per
+project keeps things simple: a view can't know which controller renders it, so it gets the
+properties of all controllers, with the union of their types.
+
+**Consequences.** The folder contains a `.gitignore` with `*`, so Git ignores it without any
+change to the project's own `.gitignore`. CodeIgniter 4 needs no generated file: `$this` is
+`CodeIgniter\View\View`.

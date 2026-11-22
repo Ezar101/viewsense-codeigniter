@@ -107,6 +107,30 @@ export class ClassIndex {
     return undefined;
   }
 
+  /** Everything CodeIgniter 3 loaded into its instance, by property name. */
+  get loadedProperties(): ReadonlyMap<string, PhpType> {
+    return this.instanceProperties;
+  }
+
+  /** Classes that extend `ancestor`, directly or through other project classes. */
+  subclassesOf(ancestor: string): ClassInfo[] {
+    const wanted = key(ancestor);
+    return [...this.classes.values()].filter((info) =>
+      this.ancestors(info.name).some((parent) => key(parent.parent ?? '') === wanted),
+    );
+  }
+
+  /** Properties of a class and its parents. A child class wins over its parent. */
+  allProperties(className: string): Map<string, PhpType> {
+    const properties = new Map<string, PhpType>();
+    for (const info of this.ancestors(className).reverse()) {
+      for (const [name, type] of info.properties) {
+        properties.set(name, type);
+      }
+    }
+    return properties;
+  }
+
   /** The class and its known parents, starting with the class itself. */
   private ancestors(className: string): ClassInfo[] {
     const chain: ClassInfo[] = [];

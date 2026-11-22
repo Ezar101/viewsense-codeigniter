@@ -28,10 +28,11 @@ const OPENING_TAG = /^<\?php(?:[ \t]*\r?\n|[ \t]+(?=declare\b))/i;
 
 const BYTE_ORDER_MARK = '\u{FEFF}';
 
-/** One `@var` line per variable, sorted by name so the block stays stable. */
+/** One `@var` line per variable: `$this` first, then by name so the block stays stable. */
 export function renderVarLines(variables: ViewVariables): string[] {
+  const order = (name: string): string => (name === 'this' ? '' : name);
   return [...variables]
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => order(a).localeCompare(order(b)))
     .map(([name, type]) => `/** @var ${formatType(type)} $${name} */`);
 }
 
