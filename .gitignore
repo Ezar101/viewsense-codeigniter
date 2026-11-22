@@ -1,0 +1,21 @@
+# Dependencies and build output
+node_modules/
+out/
+dist/
+*.vsix
+coverage/
+
+# Gradle / IntelliJ Platform
+.gradle/
+build/
+.intellijPlatform/
+.kotlin/
+
+# IDE and OS files
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Files ViewSense generates inside a CodeIgniter project
+.viewsense/
