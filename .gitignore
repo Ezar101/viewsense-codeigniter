@@ -22,3 +22,7 @@ Thumbs.db
 
 # Copy of the fixtures used when you run the extension with F5
 .sandbox/
+
+# VS Code downloaded by the integration tests, and their workspace
+.vscode-test/
+.test-workspace/

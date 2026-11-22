@@ -73,3 +73,14 @@ so the fixtures themselves never change. The sandbox is reset on each launch.
 
 The analysis code lives in `src/core/` and doesn't depend on VS Code, so you can test it with
 Vitest alone. The VS Code part lives in `src/extension.ts` and `src/vscode/`.
+
+### Integration tests
+
+The tests in `integration/` run inside a real VS Code, on a fresh copy of each fixture project:
+
+```sh
+npm run test:integration
+```
+
+The first run downloads VS Code (about 150 MB) into `.vscode-test/`. To test another version,
+set `VSCODE_TEST_VERSION`, e.g. `VSCODE_TEST_VERSION=1.95.0` for the oldest supported one.

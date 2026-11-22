@@ -5,14 +5,14 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['node_modules/', 'out/', 'dist/', 'coverage/'] },
+  { ignores: ['node_modules/', 'out/', 'dist/', 'coverage/', '.vscode-test/'] },
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
   {
     languageOptions: {
       parserOptions: {
-        projectService: { allowDefaultProject: ['eslint.config.mjs'] },
+        projectService: { allowDefaultProject: ['eslint.config.mjs', 'vitest.config.mts'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },

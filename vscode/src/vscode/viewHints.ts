@@ -41,16 +41,20 @@ export class ViewHints implements vscode.Disposable {
     const configProblems = found.reduce((total, result) => total + result.configProblems, 0);
     const message = `ViewSense: updated ${String(updated)} ${updated === 1 ? 'view' : 'views'}.`;
     const showLog = 'Show Log';
-    const choice =
+    const shown =
       configProblems > 0
-        ? await vscode.window.showWarningMessage(
+        ? vscode.window.showWarningMessage(
             `${message} ${CONFIG_FILE} has problems: see the log.`,
             showLog,
           )
-        : await vscode.window.showInformationMessage(message, showLog);
-    if (choice === showLog) {
-      this.log.show();
-    }
+        : vscode.window.showInformationMessage(message, showLog);
+    // Don't wait for the message: it only closes when the user dismisses it, and the command
+    // must end as soon as the update is done.
+    void shown.then((choice) => {
+      if (choice === showLog) {
+        this.log.show();
+      }
+    });
   }
 
   /** Looks for out-of-date blocks without changing anything, e.g. when the workspace opens. */
