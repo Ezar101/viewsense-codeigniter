@@ -8,7 +8,8 @@ export class NameContext {
   private namespace = '';
   /** Lowercase alias to fully qualified name, e.g. `product` to `App\Entities\Product`. */
   private readonly imports = new Map<string, string>();
-  private readonly classes: string[] = [];
+  /** Classes being walked, innermost last. An empty name stands for an anonymous class. */
+  private readonly classes: { name: string; parent: string | null }[] = [];
 
   enter(node: PhpNode): void {
     if (node.kind === 'namespace' && typeof node.name === 'string') {
@@ -18,8 +19,9 @@ export class NameContext {
       this.addImports(node);
     } else if (node.kind === 'class') {
       const name = identifierName(node.name);
+      const parent = isNode(node.extends) ? this.resolveClass(node.extends) : null;
       // Anonymous classes have no name: `self` inside them stays unknown.
-      this.classes.push(name === null ? '' : this.qualify(name));
+      this.classes.push({ name: name === null ? '' : this.qualify(name), parent });
     }
   }
 
@@ -31,8 +33,18 @@ export class NameContext {
 
   /** Fully qualified name of the class being walked, or `null` outside a class. */
   get currentClass(): string | null {
-    const current = this.classes.at(-1);
+    const current = this.classes.at(-1)?.name;
     return current === undefined || current === '' ? null : current;
+  }
+
+  /** Fully qualified name of the parent of the class being walked, or `null`. */
+  get parentClass(): string | null {
+    return this.classes.at(-1)?.parent ?? null;
+  }
+
+  /** Resolves a class name written as text, e.g. in a docblock: `Product`, `\App\Product`. */
+  resolveName(name: string): string {
+    return name.startsWith('\\') ? name.slice(1) : this.resolveImported(name);
   }
 
   /**
@@ -42,6 +54,9 @@ export class NameContext {
   resolveClass(node: PhpNode): string | null {
     if (node.kind === 'selfreference' || node.kind === 'staticreference') {
       return this.currentClass;
+    }
+    if (node.kind === 'parentreference') {
+      return this.parentClass;
     }
     if (node.kind !== 'name' || typeof node.name !== 'string') {
       return null;

@@ -16,3 +16,6 @@ The VS Code extension and the PhpStorm plugin have their own changelogs in their
 - VS Code: merge the variables of a view loaded from several places.
 - VS Code: write and update the generated `@var` block at the top of a view.
 - VS Code: "ViewSense: Update View Hints" command for CodeIgniter 3 and 4 projects.
+- VS Code: read types from other files: typed properties, `@property`, `@var`, `@return`,
+  `@method`, native return types, CodeIgniter 3 loaded models and libraries, CodeIgniter 4
+  `model()` and model `$returnType`.

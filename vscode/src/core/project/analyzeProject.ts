@@ -1,3 +1,4 @@
+import { buildClassIndex } from '../php/indexClasses';
 import { collectViewVariables, type ViewVariables } from '../views/collectViewVariables';
 import { findViewCalls, type ViewCall } from '../views/findViewCalls';
 import { hasHintBlock } from '../views/hintBlock';
@@ -21,19 +22,18 @@ export async function analyzeProject(
   files: ProjectFiles,
 ): Promise<ProjectAnalysis> {
   const phpFiles = await files.listPhpFiles(project.appFolder);
-  const calls: ViewCall[] = [];
-  const filesWithBlock: string[] = [];
-
+  const sources: { code: string; path: string }[] = [];
   for (const path of phpFiles) {
     const code = await files.read(path);
-    if (code === null) {
-      continue;
-    }
-    calls.push(...findViewCalls(code, path));
-    if (hasHintBlock(code)) {
-      filesWithBlock.push(path);
+    if (code !== null) {
+      sources.push({ code, path });
     }
   }
+
+  // First pass: learn the classes, so the second pass can type `$this->model->method()`.
+  const classes = buildClassIndex(sources);
+  const calls: ViewCall[] = sources.flatMap(({ code, path }) => findViewCalls(code, path, classes));
+  const filesWithBlock = sources.filter(({ code }) => hasHintBlock(code)).map(({ path }) => path);
 
   const existingFiles = new Set(phpFiles);
   const views = new Map<string, ViewVariables>();

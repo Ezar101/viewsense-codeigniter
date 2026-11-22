@@ -14,7 +14,7 @@ class Dashboard extends MY_Controller
 {
     public function index(): void
     {
-        $this->load->model('Product_model');
+        $this->load->model('product_model');
 
         $this->load->view('products/list', [
             'title' => null,

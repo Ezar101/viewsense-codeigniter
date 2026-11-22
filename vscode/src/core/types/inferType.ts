@@ -1,9 +1,12 @@
-import { isNode, nodeArray, type PhpNode } from '../php/ast';
+import { identifierName, isNode, nodeArray, stringValue, type PhpNode } from '../php/ast';
+import type { ClassIndex } from '../php/classIndex';
 import { classTypeName, type NameContext } from '../php/names';
 import { MIXED, phpType, unionTypes, type PhpType } from './phpType';
 
 export interface InferenceContext {
   readonly names: NameContext;
+  /** Classes of the project, to read property and method types. */
+  readonly classes: ClassIndex;
   /** Type of a local variable known at this point, e.g. `$product`. */
   variableType(name: string): PhpType | undefined;
 }
@@ -22,6 +25,7 @@ const BUILTIN_TYPES = new Set([
   'object',
   'string',
   'true',
+  'void',
 ]);
 
 const CAST_TYPES: Readonly<Record<string, string>> = {
@@ -77,7 +81,15 @@ export function inferType(node: PhpNode, context: InferenceContext): PhpType {
     case 'new':
       return inferNew(node, context);
     case 'variable':
-      return typeof node.name === 'string' ? (context.variableType(node.name) ?? MIXED) : MIXED;
+      return inferVariable(node, context);
+    case 'propertylookup':
+    case 'nullsafepropertylookup':
+      return inferProperty(node, context);
+    case 'call':
+      return inferCall(node, context);
+    case 'staticlookup':
+      // `Product::class` is the class name as a string.
+      return identifierName(node.offset) === 'class' ? phpType('string') : MIXED;
     case 'retif':
       return inferTernary(node, context);
     case 'bin':
@@ -117,6 +129,128 @@ function readDeclaredType(node: PhpNode, context: InferenceContext): PhpType {
     return phpType(BUILTIN_TYPES.has(name) ? name : 'mixed');
   }
   return classType(context.names.resolveClass(node));
+}
+
+function inferVariable(node: PhpNode, context: InferenceContext): PhpType {
+  if (typeof node.name !== 'string') {
+    return MIXED;
+  }
+  if (node.name === 'this') {
+    return classType(context.names.currentClass);
+  }
+  return context.variableType(node.name) ?? MIXED;
+}
+
+/** `$this->products`, `$product->category`, `$order?->customer`. */
+function inferProperty(node: PhpNode, context: InferenceContext): PhpType {
+  const property = identifierName(node.offset);
+  if (property === null || !isNode(node.what)) {
+    return MIXED;
+  }
+
+  const type = isThis(node.what)
+    ? thisPropertyType(property, context)
+    : memberType(inferType(node.what, context), (className) =>
+        context.classes.propertyType(className, property),
+      );
+  return node.kind === 'nullsafepropertylookup' ? unionTypes(type, phpType('null')) : type;
+}
+
+/**
+ * A property of `$this`. Outside a known class (a CodeIgniter 3 view, where `$this` is the
+ * loader), or for a property the class doesn't declare, CodeIgniter 3 gives access to what the
+ * loader loaded.
+ */
+function thisPropertyType(property: string, context: InferenceContext): PhpType {
+  const className = context.names.currentClass;
+  const declared =
+    className === null ? undefined : context.classes.propertyType(className, property);
+  return declared ?? context.classes.instanceProperty(property) ?? MIXED;
+}
+
+/** Method calls (`$model->find()`), static calls (`Product::make()`) and `model()`. */
+function inferCall(node: PhpNode, context: InferenceContext): PhpType {
+  const what = node.what;
+  if (!isNode(what)) {
+    return MIXED;
+  }
+
+  if (what.kind === 'name') {
+    return inferFunctionCall(identifierName(what), nodeArray(node.arguments), context);
+  }
+
+  const method = identifierName(what.offset);
+  if (method === null || !isNode(what.what)) {
+    return MIXED;
+  }
+  if (what.kind === 'staticlookup') {
+    return memberType(classType(context.names.resolveClass(what.what)), (className) =>
+      context.classes.methodReturnType(className, method),
+    );
+  }
+  if (what.kind === 'propertylookup' || what.kind === 'nullsafepropertylookup') {
+    const type = memberType(inferType(what.what, context), (className) =>
+      context.classes.methodReturnType(className, method),
+    );
+    return what.kind === 'nullsafepropertylookup' ? unionTypes(type, phpType('null')) : type;
+  }
+  return MIXED;
+}
+
+/** CodeIgniter 4 `model('ProductModel')` and `model(ProductModel::class)` give the model. */
+function inferFunctionCall(
+  name: string | null,
+  args: PhpNode[],
+  context: InferenceContext,
+): PhpType {
+  if (name?.toLowerCase() !== 'model' || args[0] === undefined) {
+    return MIXED;
+  }
+  const argument = args[0];
+
+  if (argument.kind === 'staticlookup' && identifierName(argument.offset) === 'class') {
+    return isNode(argument.what) ? classType(context.names.resolveClass(argument.what)) : MIXED;
+  }
+
+  const text = stringValue(argument);
+  if (text === null) {
+    return MIXED;
+  }
+  if (text.includes('\\')) {
+    return classType(text.replace(/^\\/, ''));
+  }
+  const found = context.classes.findByShortName(text);
+  return classType(found?.name ?? null);
+}
+
+/**
+ * Applies a member lookup to each class of a type. `null` alternatives are ignored, as a call on
+ * them would fail anyway. Returns `mixed` as soon as one alternative is unknown.
+ */
+function memberType(
+  receiver: PhpType,
+  lookup: (className: string) => PhpType | undefined,
+): PhpType {
+  const types: PhpType[] = [];
+  for (const alternative of receiver) {
+    if (alternative === 'null') {
+      continue;
+    }
+    const type = isClassName(alternative) ? lookup(alternative) : undefined;
+    if (type === undefined) {
+      return MIXED;
+    }
+    types.push(type);
+  }
+  return types.length === 0 ? MIXED : unionTypes(...types);
+}
+
+function isThis(node: PhpNode): boolean {
+  return node.kind === 'variable' && node.name === 'this';
+}
+
+function isClassName(type: string): boolean {
+  return !type.endsWith('[]') && !BUILTIN_TYPES.has(type);
 }
 
 function inferNew(node: PhpNode, context: InferenceContext): PhpType {
