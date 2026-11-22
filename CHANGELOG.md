@@ -28,3 +28,6 @@ The VS Code extension and the PhpStorm plugin have their own changelogs in their
   get the type of the array items.
 - VS Code: `.viewsense.json` for project render methods and helpers (with an optional layout),
   folder names and the CodeIgniter version, with a JSON schema for completion.
+- VS Code: update the blocks when you save a PHP file (`viewsense.updateOnSave`, on by
+  default), and warn on out-of-date blocks with a quick fix.
+- VS Code: cache parsed files, so an update only parses the files that changed.

@@ -66,6 +66,19 @@ export function hasHintBlock(source: string): boolean {
   return INLINE_BLOCK.test(source);
 }
 
+/**
+ * First and last line (0-based) of the block, from the `viewsense:start` marker to the
+ * `viewsense:end` marker, or `null` when the view has no block.
+ */
+export function hintBlockLines(source: string): { start: number; end: number } | null {
+  const match = /\/\* viewsense:start[\s\S]*?\/\* viewsense:end \*\//.exec(source);
+  if (match === null) {
+    return null;
+  }
+  const lineAt = (offset: number): number => source.slice(0, offset).split('\n').length - 1;
+  return { start: lineAt(match.index), end: lineAt(match.index + match[0].length) };
+}
+
 /** Removes the block, whichever form it has. */
 export function removeHintBlock(source: string): string {
   if (STANDALONE_BLOCK.test(source)) {

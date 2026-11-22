@@ -29,6 +29,16 @@ A view that uses `$this` also gets its type:
 
 The details of each run are in the **ViewSense** output channel.
 
+## Staying up to date
+
+When you save a PHP file or `.viewsense.json`, ViewSense updates the blocks of the project for
+you. To keep your files unchanged until you run the command yourself, turn off the
+`viewsense.updateOnSave` setting. ViewSense then shows a warning on each view whose block is out
+of date, with a quick fix (`Ctrl+.`) that runs the update.
+
+When you open a project, ViewSense only checks the blocks: it never changes a file on its own at
+startup.
+
 ## Configuration
 
 ViewSense works without configuration. To tell it about your own render methods and helpers,
