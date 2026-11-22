@@ -1,0 +1,6 @@
+{
+  "viewCalls": [
+    { "method": "render", "view": 0, "data": 1, "layout": "layouts/main" },
+    { "function": "include_view" }
+  ]
+}

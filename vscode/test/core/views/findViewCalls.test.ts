@@ -5,6 +5,7 @@ import {
   findViewCalls,
   type ViewCall,
 } from '../../../src/core/views/findViewCalls';
+import type { ViewCallRule } from '../../../src/core/project/config';
 import { readFixture } from '../../fixtures';
 
 interface CallSummary {
@@ -252,6 +253,50 @@ describe('shared data, renderer and partials', () => {
       'Home.php',
     ).calls;
     expect(calls.map((call) => call.fromClass)).toEqual(['App\\Controllers\\Home']);
+  });
+});
+
+describe('project methods and functions from .viewsense.json', () => {
+  const viewCalls: ViewCallRule[] = [
+    { kind: 'method', name: 'render', viewArgument: 0, dataArgument: 1, layout: 'layouts/main' },
+    { kind: 'function', name: 'include_view', viewArgument: 0, dataArgument: 1, layout: null },
+    { kind: 'method', name: 'page', viewArgument: 1, dataArgument: null, layout: null },
+  ];
+
+  function findWithRules(code: string): CallSummary[] {
+    return summarize(analyzeViewFile(`<?php\n${code}`, 'snippet.php', { viewCalls }).calls);
+  }
+
+  it('reads a configured method and renders its layout with the same data', () => {
+    expect(findWithRules("$this->render('products/form', ['title' => 'New']);")).toEqual([
+      { view: 'products/form', variables: { title: 'string' } },
+      { view: 'layouts/main', variables: { title: 'string' } },
+    ]);
+  });
+
+  it('reads a configured function, with a data variable', () => {
+    const code = "$data['page'] = 2; include_view('partials/pagination', $data);";
+    expect(findWithRules(code)).toEqual([
+      { view: 'partials/pagination', variables: { page: 'int' } },
+    ]);
+  });
+
+  it('uses the configured argument positions, and static calls', () => {
+    expect(findWithRules("Layout::page('admin', 'dashboard', ['a' => 1]);")).toEqual([
+      { view: 'dashboard', variables: {} },
+    ]);
+  });
+
+  it('ignores names that are not configured, and keeps the CodeIgniter 4 renderer', () => {
+    const code = `
+      $this->display('home', ['a' => 1]);
+      echo service('renderer')->setVar('b', 1)->render('shop');
+    `;
+    expect(findWithRules(code)).toEqual([{ view: 'shop', variables: { b: 'int' } }]);
+  });
+
+  it('skips a configured call whose view name is not a plain string', () => {
+    expect(findWithRules("$this->render($view, ['a' => 1]);")).toEqual([]);
   });
 });
 

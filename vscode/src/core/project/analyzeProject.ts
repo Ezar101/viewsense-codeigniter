@@ -17,6 +17,7 @@ import {
   usesThis,
   viewThisType,
 } from '../views/viewThis';
+import type { ViewCallRule } from './config';
 import type { CodeIgniterProject } from './detectProject';
 import type { ProjectFiles } from './projectFiles';
 
@@ -78,7 +79,7 @@ export async function analyzeProject(
   const codeResults = analyzeAll(
     sources.filter(({ path }) => !isView(path)),
     () => undefined,
-    classes,
+    { classes, viewCalls: project.viewCalls },
   );
 
   let received = new Map<string, ViewVariables>();
@@ -89,7 +90,7 @@ export async function analyzeProject(
     const viewResults = analyzeAll(
       sources.filter(({ path }) => isView(path)),
       (path) => viewsBefore.get(path),
-      classes,
+      { classes, viewCalls: project.viewCalls },
     );
     const results = [...codeResults, ...viewResults];
     const shared = results.flatMap(({ analysis }) => analysis.shared);
@@ -152,12 +153,12 @@ export function viewFilePath(project: CodeIgniterProject, view: string): string 
 function analyzeAll(
   sources: SourceFile[],
   initialVariables: (path: string) => ViewVariables | undefined,
-  classes: ClassIndex,
+  options: { classes: ClassIndex; viewCalls: readonly ViewCallRule[] },
 ): { path: string; analysis: FileAnalysis }[] {
   return sources.map(({ code, path }) => {
     const initial = initialVariables(path);
     const analysis = analyzeViewFile(code, path, {
-      classes,
+      ...options,
       ...(initial === undefined ? {} : { initialVariables: initial }),
     });
     return { path, analysis };

@@ -29,6 +29,23 @@ A view that uses `$this` also gets its type:
 
 The details of each run are in the **ViewSense** output channel.
 
+## Configuration
+
+ViewSense works without configuration. To tell it about your own render methods and helpers,
+such as `$this->render('products/form', $data)`, add a `.viewsense.json` file at the project
+root:
+
+```json
+{
+  "viewCalls": [
+    { "method": "render", "view": 0, "data": 1, "layout": "layouts/main" },
+    { "function": "include_view" }
+  ]
+}
+```
+
+See the [configuration reference](../docs/configuration.md) for every setting.
+
 ## Development
 
 You need Node.js 22.12 or later.

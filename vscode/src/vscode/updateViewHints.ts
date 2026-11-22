@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { analyzeProject } from '../core/project/analyzeProject';
+import { CONFIG_FILE, loadConfig } from '../core/project/config';
 import { detectProject } from '../core/project/detectProject';
 import { nodeProjectFiles } from '../core/project/projectFiles';
 import type { ViewVariables } from '../core/views/collectViewVariables';
@@ -25,14 +26,16 @@ export async function updateViewHints(log: vscode.LogOutputChannel): Promise<voi
     async () => {
       let projects = 0;
       let updated = 0;
+      let configProblems = 0;
       for (const folder of folders) {
         const result = await updateFolder(folder, log);
         if (result !== null) {
           projects += 1;
-          updated += result;
+          updated += result.updated;
+          configProblems += result.configProblems;
         }
       }
-      return { projects, updated };
+      return { projects, updated, configProblems };
     },
   );
 
@@ -44,22 +47,34 @@ export async function updateViewHints(log: vscode.LogOutputChannel): Promise<voi
   }
 
   const views = summary.updated === 1 ? 'view' : 'views';
-  const choice = await vscode.window.showInformationMessage(
-    `ViewSense: updated ${String(summary.updated)} ${views}.`,
-    SHOW_LOG,
-  );
+  const message = `ViewSense: updated ${String(summary.updated)} ${views}.`;
+  const choice =
+    summary.configProblems > 0
+      ? await vscode.window.showWarningMessage(
+          `${message} ${CONFIG_FILE} has problems: see the log.`,
+          SHOW_LOG,
+        )
+      : await vscode.window.showInformationMessage(message, SHOW_LOG);
   if (choice === SHOW_LOG) {
     log.show();
   }
 }
 
-/** Updates the views of one workspace folder. Returns the number of updated views, or `null`. */
+/**
+ * Updates the views of one workspace folder. Returns the number of updated views and of
+ * problems in `.viewsense.json`, or `null` when the folder isn't a CodeIgniter project.
+ */
 async function updateFolder(
   folder: vscode.WorkspaceFolder,
   log: vscode.LogOutputChannel,
-): Promise<number | null> {
+): Promise<{ updated: number; configProblems: number } | null> {
   const files = nodeProjectFiles(folder.uri.fsPath);
-  const project = await detectProject(files);
+  const { config, problems } = await loadConfig(files);
+  for (const problem of problems) {
+    log.error(`${folder.name}: ${CONFIG_FILE}: ${problem}`);
+  }
+
+  const project = await detectProject(files, config);
   if (project === null) {
     log.info(`${folder.name}: no CodeIgniter project found`);
     return null;
@@ -89,7 +104,7 @@ async function updateFolder(
       log.warn(`${folder.name}: skipped ${path} because it isn't a UTF-8 file`);
     }
   }
-  return updated;
+  return { updated, configProblems: problems.length };
 }
 
 /** Writes a file ViewSense owns, only when its content changed. Returns true when written. */
