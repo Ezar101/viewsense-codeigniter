@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "prelaunch",
+      "path": "vscode",
+      "label": "npm: prelaunch - vscode",
+      "detail": "Build the extension and reset the fixtures sandbox",
+      "problemMatcher": "$esbuild"
+    }
+  ]
+}

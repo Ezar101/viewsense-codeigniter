@@ -19,3 +19,6 @@ Thumbs.db
 
 # Files ViewSense generates inside a CodeIgniter project
 .viewsense/
+
+# Copy of the fixtures used when you run the extension with F5
+.sandbox/

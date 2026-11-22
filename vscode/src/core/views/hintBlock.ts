@@ -61,6 +61,10 @@ export function applyHintBlock(source: string, variables: ViewVariables): string
   return bom + `<?php ${inner.join(eol)} ?>${eol}` + body;
 }
 
+export function hasHintBlock(source: string): boolean {
+  return INLINE_BLOCK.test(source);
+}
+
 /** Removes the block, whichever form it has. */
 export function removeHintBlock(source: string): string {
   if (STANDALONE_BLOCK.test(source)) {
