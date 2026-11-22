@@ -19,6 +19,14 @@ ViewSense adds a block like this at the top of each view, and updates it on each
 Your PHP extension (Intelephense, PHP Tools, Phpactor) reads these `@var` lines, so it knows
 each variable and its type. ViewSense never changes anything outside the two markers.
 
+A view that uses `$this` also gets its type:
+
+- CodeIgniter 4: `\CodeIgniter\View\View`, the view renderer.
+- CodeIgniter 3: `ViewSense_CI3_View`, a class ViewSense generates in `.viewsense/ci3_view.php`.
+  It extends `CI_Loader` and lists what the controllers can reach (`$this->input`, loaded
+  models and libraries, controller properties). The folder holds its own `.gitignore`, so Git
+  ignores it.
+
 The details of each run are in the **ViewSense** output channel.
 
 ## Development

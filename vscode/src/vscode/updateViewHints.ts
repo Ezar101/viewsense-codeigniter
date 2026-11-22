@@ -71,6 +71,13 @@ async function updateFolder(
     log.warn(`${folder.name}: no file found for the view '${view}'`);
   }
 
+  for (const [path, content] of analysis.generatedFiles) {
+    const uri = vscode.Uri.joinPath(folder.uri, ...path.split('/'));
+    if (await writeGeneratedFile(uri, content)) {
+      log.info(`${folder.name}: generated ${path}`);
+    }
+  }
+
   let updated = 0;
   for (const [path, variables] of analysis.views) {
     const uri = vscode.Uri.joinPath(folder.uri, ...path.split('/'));
@@ -83,6 +90,20 @@ async function updateFolder(
     }
   }
   return updated;
+}
+
+/** Writes a file ViewSense owns, only when its content changed. Returns true when written. */
+async function writeGeneratedFile(uri: vscode.Uri, content: string): Promise<boolean> {
+  try {
+    const current = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
+    if (current === content) {
+      return false;
+    }
+  } catch {
+    // The file doesn't exist yet. writeFile() creates the missing folders.
+  }
+  await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(content));
+  return true;
 }
 
 async function writeHintBlock(uri: vscode.Uri, variables: ViewVariables): Promise<WriteResult> {

@@ -19,3 +19,5 @@ The VS Code extension and the PhpStorm plugin have their own changelogs in their
 - VS Code: read types from other files: typed properties, `@property`, `@var`, `@return`,
   `@method`, native return types, CodeIgniter 3 loaded models and libraries, CodeIgniter 4
   `model()` and model `$returnType`.
+- VS Code: type `$this` in views (`CodeIgniter\View\View` in CodeIgniter 4, a generated
+  `ViewSense_CI3_View` class in CodeIgniter 3).

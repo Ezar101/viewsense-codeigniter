@@ -35,6 +35,15 @@ async function analyzeFixture(name: string): Promise<Record<string, Record<strin
   );
 }
 
+async function generatedFiles(name: string): Promise<ReadonlyMap<string, string>> {
+  const files = nodeProjectFiles(fixturePath(name));
+  const project = await detectProject(files);
+  if (project === null) {
+    throw new Error(`No project detected in ${name}`);
+  }
+  return (await analyzeProject(project, files)).generatedFiles;
+}
+
 describe('detectProject', () => {
   it('detects the CodeIgniter 3 fixture', async () => {
     expect(await detectProject(nodeProjectFiles(fixturePath('ci3')))).toEqual({
@@ -75,12 +84,13 @@ describe('analyzeProject', () => {
   it('gives the variables of each CodeIgniter 3 view file, merged across controllers', async () => {
     expect(await analyzeFixture('ci3')).toEqual({
       'application/views/products/list.php': {
+        this: 'ViewSense_CI3_View',
         title: 'string|null',
         products: 'Product[]',
         page: 'int|string',
       },
       'application/views/products/show.php': { product: 'Product|null', in_cart: 'bool' },
-      'application/views/layouts/main.php': { content: 'mixed' },
+      'application/views/layouts/main.php': { this: 'ViewSense_CI3_View', content: 'mixed' },
       'application/views/partials/product_card.php': { product: 'mixed' },
     });
   });
@@ -88,12 +98,50 @@ describe('analyzeProject', () => {
   it('gives the variables of each CodeIgniter 4 view file', async () => {
     expect(await analyzeFixture('ci4')).toEqual({
       'app/Views/products/index.php': {
+        this: '\\CodeIgniter\\View\\View',
         title: 'string',
         products: '\\App\\Entities\\Product[]',
       },
-      'app/Views/products/show.php': { product: '\\App\\Entities\\Product|null' },
+      'app/Views/products/show.php': {
+        this: '\\CodeIgniter\\View\\View',
+        product: '\\App\\Entities\\Product|null',
+      },
+      'app/Views/layouts/main.php': { this: '\\CodeIgniter\\View\\View' },
       'app/Views/partials/product_card.php': { product: 'mixed' },
     });
+  });
+
+  it('generates the class of $this for CodeIgniter 3 only', async () => {
+    expect([...(await generatedFiles('ci3')).keys()]).toEqual([
+      '.viewsense/ci3_view.php',
+      '.viewsense/.gitignore',
+    ]);
+    expect((await generatedFiles('ci4')).size).toBe(0);
+  });
+
+  it('describes the loader and what the controllers reach in the CodeIgniter 3 stub', async () => {
+    const stub = (await generatedFiles('ci3')).get('.viewsense/ci3_view.php') ?? '';
+
+    expect(stub).toContain('class ViewSense_CI3_View extends CI_Loader');
+    expect(stub).toContain(' * @property CI_Input $input\n');
+    expect(stub).toContain(' * @property Cart $cart\n');
+    expect(stub).toContain(' * @property Product_model $products\n');
+    expect(stub).toContain(' * @property Product_model $product_model\n');
+  });
+
+  it('does not count the $this line of its own block as a use of $this', async () => {
+    const files = memoryFiles({
+      spark: '',
+      'app/Views/old.php':
+        '<?php /* viewsense:start - generated */\n/** @var \\CodeIgniter\\View\\View $this */\n/* viewsense:end */ ?>\n<p>Old</p>',
+    });
+    const project = await detectProject(files);
+    if (project === null) {
+      throw new Error('No project detected');
+    }
+
+    const analysis = await analyzeProject(project, files);
+    expect(analysis.views.get('app/Views/old.php')?.size).toBe(0);
   });
 
   it('lists the views whose file is missing', async () => {
