@@ -21,3 +21,8 @@ The VS Code extension and the PhpStorm plugin have their own changelogs in their
   `model()` and model `$returnType`.
 - VS Code: type `$this` in views (`CodeIgniter\View\View` in CodeIgniter 4, a generated
   `ViewSense_CI3_View` class in CodeIgniter 3).
+- VS Code: CodeIgniter 3 `$this->load->vars()`, shared with the views of the class and its
+  children.
+- VS Code: CodeIgniter 4 renderer: `setVar()`, `setData()` and `render()`, and `$this->include()`.
+- VS Code: partial views get the variables of the view that includes them, and `foreach` items
+  get the type of the array items.

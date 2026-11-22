@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { formatType } from '../../../src/core/types/phpType';
-import { findViewCalls, type ViewCall } from '../../../src/core/views/findViewCalls';
+import { formatType, phpType } from '../../../src/core/types/phpType';
+import {
+  analyzeViewFile,
+  findViewCalls,
+  type ViewCall,
+} from '../../../src/core/views/findViewCalls';
 import { readFixture } from '../../fixtures';
 
 interface CallSummary {
@@ -68,10 +72,14 @@ describe('findViewCalls on the CodeIgniter 3 fixture', () => {
 });
 
 describe('findViewCalls on the CodeIgniter 4 fixture', () => {
-  it('finds view() calls, including after return', () => {
+  it('finds view() calls, including after return, and renderer calls', () => {
     expect(findInFixture('ci4/app/Controllers/Products.php')).toEqual([
       { view: 'products/index', variables: { title: 'string', products: 'mixed' } },
       { view: 'products/show', variables: { product: 'mixed' } },
+      {
+        view: 'products/form',
+        variables: { title: 'string', product: '\\App\\Entities\\Product', errors: 'array' },
+      },
     ]);
   });
 
@@ -163,6 +171,87 @@ describe('findViewCalls on code snippets', () => {
 
   it('does not throw on a file with a syntax error', () => {
     expect(() => findViewCalls("<?php\nview('home', [\n", 'broken.php')).not.toThrow();
+  });
+});
+
+describe('shared data, renderer and partials', () => {
+  function sharedIn(
+    code: string,
+  ): { fromClass: string | null; variables: Record<string, string> }[] {
+    return analyzeViewFile(`<?php\n${code}`, 'snippet.php').shared.map((entry) => ({
+      fromClass: entry.fromClass,
+      variables: Object.fromEntries(
+        entry.variables.map((variable) => [variable.name, formatType(variable.type)]),
+      ),
+    }));
+  }
+
+  it('reads both forms of $this->load->vars()', () => {
+    const code = `
+      class MY_Controller {
+        public function __construct() {
+          $this->load->vars(['site_name' => 'Shop', 'year' => 2026]);
+          $this->load->vars('debug', false);
+        }
+      }
+    `;
+    expect(sharedIn(code)).toEqual([
+      { fromClass: 'MY_Controller', variables: { site_name: 'string', year: 'int' } },
+      { fromClass: 'MY_Controller', variables: { debug: 'bool' } },
+    ]);
+  });
+
+  it('collects setVar() and setData() on a renderer variable', () => {
+    const code = `
+      $renderer = service('renderer');
+      $renderer->setVar('title', 'Shop');
+      $renderer->setData(['count' => 3])->setVar('open', true);
+      echo $renderer->render('shop');
+    `;
+    expect(findInSnippet(code)).toEqual([
+      { view: 'shop', variables: { title: 'string', count: 'int', open: 'bool' } },
+    ]);
+  });
+
+  it('reads a renderer chain and the other ways to get the renderer', () => {
+    const code = `
+      echo single_service('renderer')->setVar('a', 1)->render('one');
+      echo \\Config\\Services::renderer()->setData(['b' => 'x'])->render('two');
+      echo $this->renderer->setVar('c', 1.5)->render('three');
+    `;
+    expect(findInSnippet(code)).toEqual([
+      { view: 'one', variables: { a: 'int' } },
+      { view: 'two', variables: { b: 'string' } },
+      { view: 'three', variables: { c: 'float' } },
+    ]);
+  });
+
+  it('ignores render() on something that is not a renderer', () => {
+    expect(findInSnippet("$this->render('products/form', ['a' => 1]);")).toEqual([]);
+  });
+
+  it('reads $this->include() as a partial without its own data', () => {
+    expect(findInSnippet("echo $this->include('partials/card');")).toEqual([
+      { view: 'partials/card', variables: {} },
+    ]);
+  });
+
+  it('types a foreach item from the array it loops over, using the view variables', () => {
+    const code =
+      "<?php foreach ($products as $key => $product) { $this->load->view('card', ['product' => $product]); }";
+    // `$products` is a variable the view receives: a list of products, or null.
+    const initialVariables = new Map([['products', phpType('Product[]', 'null')]]);
+
+    const calls = analyzeViewFile(code, 'list.php', { initialVariables }).calls;
+    expect(summarize(calls)).toEqual([{ view: 'card', variables: { product: 'Product' } }]);
+  });
+
+  it('records the class each call is in', () => {
+    const calls = analyzeViewFile(
+      "<?php namespace App\\Controllers; class Home { function index() { return view('home'); } }",
+      'Home.php',
+    ).calls;
+    expect(calls.map((call) => call.fromClass)).toEqual(['App\\Controllers\\Home']);
   });
 });
 

@@ -82,16 +82,27 @@ describe('detectProject', () => {
 
 describe('analyzeProject', () => {
   it('gives the variables of each CodeIgniter 3 view file, merged across controllers', async () => {
+    // `site_name` comes from `$this->load->vars()` in MY_Controller.
+    const listVariables = {
+      site_name: 'string',
+      title: 'string|null',
+      products: 'Product[]',
+      page: 'int|string',
+    };
     expect(await analyzeFixture('ci3')).toEqual({
-      'application/views/products/list.php': {
-        this: 'ViewSense_CI3_View',
-        title: 'string|null',
-        products: 'Product[]',
-        page: 'int|string',
+      'application/views/products/list.php': { this: 'ViewSense_CI3_View', ...listVariables },
+      'application/views/products/show.php': {
+        site_name: 'string',
+        product: 'Product|null',
+        in_cart: 'bool',
       },
-      'application/views/products/show.php': { product: 'Product|null', in_cart: 'bool' },
-      'application/views/layouts/main.php': { this: 'ViewSense_CI3_View', content: 'mixed' },
-      'application/views/partials/product_card.php': { product: 'mixed' },
+      'application/views/layouts/main.php': {
+        this: 'ViewSense_CI3_View',
+        site_name: 'string',
+        content: 'mixed',
+      },
+      // The partial gets the variables of products/list, and `$product` from its foreach.
+      'application/views/partials/product_card.php': { ...listVariables, product: 'Product' },
     });
   });
 
@@ -106,9 +117,62 @@ describe('analyzeProject', () => {
         this: '\\CodeIgniter\\View\\View',
         product: '\\App\\Entities\\Product|null',
       },
+      'app/Views/products/form.php': {
+        title: 'string',
+        product: '\\App\\Entities\\Product',
+        errors: 'array',
+      },
       'app/Views/layouts/main.php': { this: '\\CodeIgniter\\View\\View' },
-      'app/Views/partials/product_card.php': { product: 'mixed' },
+      // From products/index (view() in a foreach) and products/show ($this->include()).
+      'app/Views/partials/product_card.php': {
+        title: 'string',
+        products: '\\App\\Entities\\Product[]',
+        product: '\\App\\Entities\\Product|null',
+      },
     });
+  });
+
+  it('shares load->vars() only with views of the class and its children', async () => {
+    const files = memoryFiles({
+      'application/config/config.php': '<?php',
+      'application/core/Admin_Controller.php':
+        "<?php class Admin_Controller extends CI_Controller { public function __construct() { $this->load->vars('admin', true); } }",
+      'application/controllers/Users.php':
+        "<?php class Users extends Admin_Controller { public function index() { $this->load->view('users', ['admin' => 'yes']); } }",
+      'application/controllers/Home.php':
+        "<?php class Home extends CI_Controller { public function index() { $this->load->view('home'); } }",
+      'application/views/users.php': '<p>Users</p>',
+      'application/views/home.php': '<p>Home</p>',
+    });
+    const project = await detectProject(files);
+    if (project === null) {
+      throw new Error('No project detected');
+    }
+
+    const { views } = await analyzeProject(project, files);
+    // What the call passes itself wins over the shared value.
+    expect(formatType(views.get('application/views/users.php')?.get('admin') ?? [])).toBe('string');
+    expect(views.get('application/views/home.php')?.has('admin')).toBe(false);
+  });
+
+  it('stops on views that include each other', async () => {
+    const files = memoryFiles({
+      spark: '',
+      'app/Controllers/Home.php': "<?php view('a', ['n' => 1]);",
+      'app/Views/a.php': "<?= view('b', ['fromA' => 'x']) ?>",
+      'app/Views/b.php': "<?= view('a', ['fromB' => 2.5]) ?>",
+    });
+    const project = await detectProject(files);
+    if (project === null) {
+      throw new Error('No project detected');
+    }
+
+    const { views } = await analyzeProject(project, files);
+    expect([...(views.get('app/Views/a.php')?.keys() ?? [])].sort()).toEqual([
+      'fromA',
+      'fromB',
+      'n',
+    ]);
   });
 
   it('generates the class of $this for CodeIgniter 3 only', async () => {
