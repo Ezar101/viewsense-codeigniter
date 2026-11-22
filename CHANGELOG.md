@@ -26,3 +26,5 @@ The VS Code extension and the PhpStorm plugin have their own changelogs in their
 - VS Code: CodeIgniter 4 renderer: `setVar()`, `setData()` and `render()`, and `$this->include()`.
 - VS Code: partial views get the variables of the view that includes them, and `foreach` items
   get the type of the array items.
+- VS Code: `.viewsense.json` for project render methods and helpers (with an optional layout),
+  folder names and the CodeIgniter version, with a JSON schema for completion.

@@ -48,6 +48,12 @@
         "title": "Update View Hints",
         "category": "ViewSense"
       }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": ".viewsense.json",
+        "url": "./schemas/viewsense.schema.json"
+      }
     ]
   },
   "scripts": {

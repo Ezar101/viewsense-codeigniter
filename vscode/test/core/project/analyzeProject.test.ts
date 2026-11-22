@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { analyzeProject, viewFilePath } from '../../../src/core/project/analyzeProject';
+import {
+  analyzeProject,
+  viewFilePath,
+  type ProjectAnalysis,
+} from '../../../src/core/project/analyzeProject';
+import { loadConfig } from '../../../src/core/project/config';
 import { detectProject } from '../../../src/core/project/detectProject';
 import { nodeProjectFiles, type ProjectFiles } from '../../../src/core/project/projectFiles';
 import { formatType } from '../../../src/core/types/phpType';
@@ -19,14 +24,18 @@ function memoryFiles(files: Record<string, string>): ProjectFiles {
   };
 }
 
-async function analyzeFixture(name: string): Promise<Record<string, Record<string, string>>> {
-  const files = nodeProjectFiles(fixturePath(name));
-  const project = await detectProject(files);
+/** Analyzes a project the way the extension does: `.viewsense.json` first, then detection. */
+async function analyze(files: ProjectFiles): Promise<ProjectAnalysis> {
+  const { config } = await loadConfig(files);
+  const project = await detectProject(files, config);
   if (project === null) {
-    throw new Error(`No project detected in ${name}`);
+    throw new Error('No project detected');
   }
+  return analyzeProject(project, files);
+}
 
-  const { views } = await analyzeProject(project, files);
+async function analyzeFixture(name: string): Promise<Record<string, Record<string, string>>> {
+  const { views } = await analyze(nodeProjectFiles(fixturePath(name)));
   return Object.fromEntries(
     [...views].map(([path, variables]) => [
       path,
@@ -36,12 +45,7 @@ async function analyzeFixture(name: string): Promise<Record<string, Record<strin
 }
 
 async function generatedFiles(name: string): Promise<ReadonlyMap<string, string>> {
-  const files = nodeProjectFiles(fixturePath(name));
-  const project = await detectProject(files);
-  if (project === null) {
-    throw new Error(`No project detected in ${name}`);
-  }
-  return (await analyzeProject(project, files)).generatedFiles;
+  return (await analyze(nodeProjectFiles(fixturePath(name)))).generatedFiles;
 }
 
 describe('detectProject', () => {
@@ -50,6 +54,7 @@ describe('detectProject', () => {
       version: 3,
       appFolder: 'application',
       viewsFolder: 'application/views',
+      viewCalls: [],
     });
   });
 
@@ -58,7 +63,25 @@ describe('detectProject', () => {
       version: 4,
       appFolder: 'app',
       viewsFolder: 'app/Views',
+      viewCalls: [],
     });
+  });
+
+  it('uses the folders and the version of .viewsense.json', async () => {
+    const files = memoryFiles({ 'src/config/config.php': '<?php' });
+    expect(await detectProject(files, { appFolder: 'src', viewCalls: [] })).toEqual({
+      version: 3,
+      appFolder: 'src',
+      viewsFolder: 'src/views',
+      viewCalls: [],
+    });
+    expect(
+      await detectProject(memoryFiles({}), {
+        version: 4,
+        viewsFolder: 'themes/default',
+        viewCalls: [],
+      }),
+    ).toMatchObject({ version: 4, appFolder: 'app', viewsFolder: 'themes/default' });
   });
 
   it('detects CodeIgniter 4 from composer.json alone', async () => {
@@ -96,13 +119,26 @@ describe('analyzeProject', () => {
         product: 'Product|null',
         in_cart: 'bool',
       },
+      // From `$this->render()`, declared in .viewsense.json.
+      'application/views/products/form.php': {
+        site_name: 'string',
+        title: 'string',
+        errors: 'array',
+        product: 'Product',
+      },
+      // The render() rule names this layout: it gets the same data as products/form.
       'application/views/layouts/main.php': {
         this: 'ViewSense_CI3_View',
         site_name: 'string',
         content: 'mixed',
+        title: 'string',
+        errors: 'array',
+        product: 'Product',
       },
       // The partial gets the variables of products/list, and `$product` from its foreach.
       'application/views/partials/product_card.php': { ...listVariables, product: 'Product' },
+      // From `include_view()`, declared in .viewsense.json.
+      'application/views/partials/pagination.php': listVariables,
     });
   });
 
@@ -246,6 +282,7 @@ describe('viewFilePath', () => {
       version: 3,
       appFolder: 'application',
       viewsFolder: 'application/views',
+      viewCalls: [],
     } as const;
     expect(viewFilePath(project, 'products/list')).toBe('application/views/products/list.php');
     expect(viewFilePath(project, '/home')).toBe('application/views/home.php');

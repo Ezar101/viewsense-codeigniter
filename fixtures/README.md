@@ -15,7 +15,7 @@ Detected through `application/config/config.php`.
 | ------ | ------- |
 | `$data['key'] = ...` then `$this->load->view()` | `Products::index()` |
 | Inline array passed to `$this->load->view()` | `Products::show()` |
-| Custom render method that wraps a layout | `MY_Controller::render()`, used by `Products::create()` |
+| Custom render method that wraps a layout | `MY_Controller::render()`, used by `Products::create()`, declared in `.viewsense.json` |
 | Variables shared with `$this->load->vars()` | `MY_Controller::__construct()` (`$site_name`) |
 | Model loaded with an alias | `$this->load->model('Product_model', 'products')` |
 | `@property` on a controller | `Products`, `Dashboard`, `MY_Controller` |
@@ -24,7 +24,7 @@ Detected through `application/config/config.php`.
 | `new Product()` | `Products::create()` |
 | One view, several controllers (type merge) | `products/list` from `Products` and `Dashboard` |
 | Partial loaded from a view | `products/list` loads `partials/product_card` |
-| Custom helper that includes a view | `include_view()` in `products/list` |
+| Custom helper that includes a view | `include_view()` in `products/list`, declared in `.viewsense.json` |
 | `$this` in a view (loaded library) | `$this->cart` in `layouts/main` |
 
 ## CodeIgniter 4 - [`ci4/`](ci4/)

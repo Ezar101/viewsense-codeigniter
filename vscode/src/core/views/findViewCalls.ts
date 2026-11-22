@@ -10,6 +10,7 @@ import {
 } from '../php/ast';
 import { ClassIndex } from '../php/classIndex';
 import { NameContext } from '../php/names';
+import type { ViewCallRule } from '../project/config';
 import { parsePhp } from '../php/parser';
 import { inferType, typeFromDeclaration, type InferenceContext } from '../types/inferType';
 import { itemTypeOf, MIXED, phpType, type PhpType } from '../types/phpType';
@@ -48,6 +49,8 @@ export interface AnalyzeOptions {
   readonly classes?: ClassIndex;
   /** Variables known at the top of the file: for a view, the variables it receives. */
   readonly initialVariables?: ReadonlyMap<string, PhpType>;
+  /** Project methods and functions that render views, from `.viewsense.json`. */
+  readonly viewCalls?: readonly ViewCallRule[];
 }
 
 /** What we know about the variables of one function while walking it. */
@@ -122,9 +125,12 @@ export function analyzeViewFile(
       } else if (node.kind === 'foreach') {
         trackForeach(node, scope, context);
       } else if (node.kind === 'call') {
-        readCall(node, scope, context, addCall, (variables) => {
+        const known = readCall(node, scope, context, addCall, (variables) => {
           shared.push({ fromClass: names.currentClass, variables: toVariables(variables) });
         });
+        if (!known) {
+          readCustomCall(node, options.viewCalls ?? [], scope, context, addCall);
+        }
       }
     },
     leave(node) {
@@ -150,45 +156,53 @@ function normalizeViewName(view: string): string {
   return view.trim().replace(/\.php$/i, '');
 }
 
-/** Reads one function or method call and reports what it passes to views. */
+/**
+ * Reads one call that CodeIgniter itself provides and reports what it passes to views.
+ * Returns `false` when the call isn't one of them.
+ */
 function readCall(
   node: PhpNode,
   scope: Scope,
   context: InferenceContext,
   addCall: (node: PhpNode, view: string, keys: Keys) => void,
   addShared: (keys: Keys) => void,
-): void {
+): boolean {
   const what = node.what;
   const args = nodeArray(node.arguments);
   if (!isNode(what)) {
-    return;
+    return false;
   }
 
   // view('name', $data)
   if (what.kind === 'name') {
     const view = stringValue(args[0]);
-    if (identifierName(what) === 'view' && view !== null) {
+    if (identifierName(what)?.toLowerCase() !== 'view') {
+      return false;
+    }
+    if (view !== null) {
       addCall(node, view, readArrayKeys(args[1], scope, context));
     }
-    return;
+    return true;
   }
 
   if (what.kind !== 'propertylookup' || !isNode(what.what)) {
-    return;
+    return false;
   }
   const method = identifierName(what.offset);
   const receiver = what.what;
 
-  if (isLoader(receiver)) {
-    const view = stringValue(args[0]);
-    if (method === 'view' && view !== null) {
+  if (isLoader(receiver) && (method === 'view' || method === 'vars')) {
+    if (method === 'view') {
       // ->load->view('name', $data)
-      addCall(node, view, readArrayKeys(args[1], scope, context));
-    } else if (method === 'vars') {
+      const view = stringValue(args[0]);
+      if (view !== null) {
+        addCall(node, view, readArrayKeys(args[1], scope, context));
+      }
+    } else {
       // ->load->vars($data) or ->load->vars('name', $value)
       addShared(readLoaderVars(args, scope, context));
     }
-    return;
+    return true;
   }
 
   if (method === 'include' && variableName(receiver) === 'this') {
@@ -197,23 +211,87 @@ function readCall(
     if (view !== null) {
       addCall(node, view, new Map());
     }
-    return;
+    return true;
   }
 
   if (method === 'render') {
     const view = stringValue(args[0]);
     const data = rendererData(receiver, scope, context);
-    if (view !== null && data !== null) {
+    if (data === null) {
+      // Not the CodeIgniter 4 renderer: maybe a project method from `.viewsense.json`.
+      return false;
+    }
+    if (view !== null) {
       addCall(node, view, data);
     }
-  } else if (method === 'setVar' || method === 'setData') {
+    return true;
+  }
+
+  if (method === 'setVar' || method === 'setData') {
     // Remember the data on the renderer variable, for a later `$renderer->render()`.
     const base = chainBaseVariable(receiver);
     const data = rendererData(node, scope, context);
     if (base !== null && data !== null) {
       scope.renderers.set(base, data);
     }
+    return true;
   }
+  return false;
+}
+
+/**
+ * Reads a call to a project method or function listed in `.viewsense.json`, such as
+ * `$this->render('products/form', $data)`. With a layout, the layout gets the same data.
+ */
+function readCustomCall(
+  node: PhpNode,
+  rules: readonly ViewCallRule[],
+  scope: Scope,
+  context: InferenceContext,
+  addCall: (node: PhpNode, view: string, keys: Keys) => void,
+): void {
+  const called = calledName(node);
+  if (called === null) {
+    return;
+  }
+
+  const rule = rules.find(
+    (candidate) =>
+      candidate.kind === called.kind && candidate.name.toLowerCase() === called.name.toLowerCase(),
+  );
+  if (rule === undefined) {
+    return;
+  }
+
+  const args = nodeArray(node.arguments);
+  const view = stringValue(args[rule.viewArgument]);
+  if (view === null) {
+    return;
+  }
+  const data =
+    rule.dataArgument === null
+      ? new Map<string, PhpType>()
+      : readArrayKeys(args[rule.dataArgument], scope, context);
+  addCall(node, view, data);
+  if (rule.layout !== null) {
+    addCall(node, rule.layout, data);
+  }
+}
+
+/** `render` for `$this->render()` or `Layout::render()`, `include_view` for `include_view()`. */
+function calledName(node: PhpNode): { kind: 'method' | 'function'; name: string } | null {
+  const what = node.what;
+  if (!isNode(what)) {
+    return null;
+  }
+  const kind = what.kind === 'name' ? 'function' : 'method';
+  const name =
+    kind === 'function'
+      ? identifierName(what)
+      : ['propertylookup', 'nullsafepropertylookup', 'staticlookup'].includes(what.kind)
+        ? identifierName(what.offset)
+        : null;
+  return name === null ? null : { kind, name };
 }
 
 /** True for `$this->load` and `get_instance()->load`. */

@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ViewSense for CodeIgniter settings",
+  "description": "Settings for ViewSense in this CodeIgniter project. Every setting is optional.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "description": "CodeIgniter version. Detected from the project files when not set.",
+      "enum": [3, 4]
+    },
+    "appFolder": {
+      "description": "Folder with the application code, relative to the project root. Default: \"application\" (CodeIgniter 3) or \"app\" (CodeIgniter 4).",
+      "type": "string",
+      "examples": ["application", "app"]
+    },
+    "viewsFolder": {
+      "description": "Folder CodeIgniter loads views from, relative to the project root. Default: \"views\" or \"Views\" inside the application folder.",
+      "type": "string",
+      "examples": ["application/views", "app/Views"]
+    },
+    "viewCalls": {
+      "description": "Project methods and functions that render a view, on top of the ones CodeIgniter provides.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "oneOf": [{ "required": ["method"] }, { "required": ["function"] }],
+        "properties": {
+          "method": {
+            "description": "Name of a method that renders a view, e.g. \"render\" for $this->render('products/list', $data).",
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "function": {
+            "description": "Name of a function that renders a view, e.g. \"include_view\" for include_view('partials/card', $data).",
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "view": {
+            "description": "Position of the view name argument, starting at 0.",
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          },
+          "data": {
+            "description": "Position of the data argument, starting at 0, or null when the call passes no data. Default: the argument after the view name.",
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "layout": {
+            "description": "A layout view the method also renders with the same data, e.g. \"layouts/main\".",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
