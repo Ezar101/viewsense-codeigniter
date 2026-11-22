@@ -120,6 +120,16 @@ export class ClassIndex {
     );
   }
 
+  /**
+   * Lowercase fully qualified names of a class and all its parents, including a last parent
+   * outside the project (e.g. `ci_controller`).
+   */
+  lineage(className: string): string[] {
+    const chain = this.ancestors(className);
+    const names = [key(className), ...chain.map((info) => key(info.parent ?? ''))];
+    return [...new Set(names.filter((name) => name !== ''))];
+  }
+
   /** Properties of a class and its parents. A child class wins over its parent. */
   allProperties(className: string): Map<string, PhpType> {
     const properties = new Map<string, PhpType>();

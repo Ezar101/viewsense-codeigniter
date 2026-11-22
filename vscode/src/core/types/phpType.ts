@@ -17,6 +17,18 @@ export function unionTypes(...types: PhpType[]): PhpType {
   return normalize(types.flat());
 }
 
+/**
+ * Type of the items of an array type, e.g. for `foreach`: `Product[]` gives `Product`.
+ * `null` is ignored (a loop over null doesn't run). Anything else gives `mixed`.
+ */
+export function itemTypeOf(type: PhpType): PhpType {
+  const lists = type.filter((name) => name !== 'null');
+  if (lists.length === 0 || !lists.every((name) => name.endsWith('[]'))) {
+    return MIXED;
+  }
+  return phpType(...lists.map((name) => name.slice(0, -2)));
+}
+
 export function isMixed(type: PhpType): boolean {
   return type.includes('mixed');
 }
