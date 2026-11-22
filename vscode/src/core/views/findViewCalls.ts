@@ -8,6 +8,7 @@ import {
   walk,
   type PhpNode,
 } from '../php/ast';
+import { ClassIndex } from '../php/classIndex';
 import { NameContext } from '../php/names';
 import { parsePhp } from '../php/parser';
 import { inferType, typeFromDeclaration, type InferenceContext } from '../types/inferType';
@@ -43,8 +44,13 @@ interface Scope {
  *
  * The data can be an inline array or a variable built earlier in the same function
  * (`$data = [...]`, `$data['key'] = ...`). Calls whose view name isn't a plain string are skipped.
+ * `classes` gives the types of properties and methods of the project's classes.
  */
-export function findViewCalls(code: string, fileName: string): ViewCall[] {
+export function findViewCalls(
+  code: string,
+  fileName: string,
+  classes: ClassIndex = new ClassIndex(),
+): ViewCall[] {
   const calls: ViewCall[] = [];
   const names = new NameContext();
   // The first scope holds the code outside functions, e.g. a view file.
@@ -52,6 +58,7 @@ export function findViewCalls(code: string, fileName: string): ViewCall[] {
   const currentScope = (): Scope => scopes.at(-1) ?? newScope();
   const context: InferenceContext = {
     names,
+    classes,
     variableType: (name) => currentScope().variables.get(name),
   };
 

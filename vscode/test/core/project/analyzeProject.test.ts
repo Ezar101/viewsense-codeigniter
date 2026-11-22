@@ -76,10 +76,10 @@ describe('analyzeProject', () => {
     expect(await analyzeFixture('ci3')).toEqual({
       'application/views/products/list.php': {
         title: 'string|null',
-        products: 'mixed',
+        products: 'Product[]',
         page: 'int|string',
       },
-      'application/views/products/show.php': { product: 'mixed', in_cart: 'mixed' },
+      'application/views/products/show.php': { product: 'Product|null', in_cart: 'bool' },
       'application/views/layouts/main.php': { content: 'mixed' },
       'application/views/partials/product_card.php': { product: 'mixed' },
     });
@@ -87,8 +87,11 @@ describe('analyzeProject', () => {
 
   it('gives the variables of each CodeIgniter 4 view file', async () => {
     expect(await analyzeFixture('ci4')).toEqual({
-      'app/Views/products/index.php': { title: 'string', products: 'mixed' },
-      'app/Views/products/show.php': { product: 'mixed' },
+      'app/Views/products/index.php': {
+        title: 'string',
+        products: '\\App\\Entities\\Product[]',
+      },
+      'app/Views/products/show.php': { product: '\\App\\Entities\\Product|null' },
       'app/Views/partials/product_card.php': { product: 'mixed' },
     });
   });
