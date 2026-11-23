@@ -1,0 +1,15 @@
+# Weekly pull requests to keep dependencies and GitHub Actions up to date.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /vscode
+    schedule:
+      interval: weekly
+    groups:
+      # One pull request for all development tools instead of one per package.
+      development:
+        dependency-type: development
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

@@ -1,0 +1,98 @@
+name: VS Code extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'vscode/**'
+      - 'fixtures/**'
+      - '.github/workflows/vscode.yml'
+  pull_request:
+    paths:
+      - 'vscode/**'
+      - 'fixtures/**'
+      - '.github/workflows/vscode.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new push to the same branch cancels the run still in progress.
+concurrency:
+  group: vscode-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: vscode
+
+jobs:
+  check:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+      - run: npm ci
+      - run: npm run check
+
+  integration:
+    name: Integration tests (VS Code ${{ matrix.vscode }}, ${{ matrix.os }})
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest version the extension supports (engines.vscode in package.json).
+          - os: ubuntu-latest
+            vscode: 1.95.0
+          - os: ubuntu-latest
+            vscode: stable
+          - os: windows-latest
+            vscode: stable
+    runs-on: ${{ matrix.os }}
+    env:
+      VSCODE_TEST_VERSION: ${{ matrix.vscode }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+      - run: npm ci
+      # A fixed version never changes, so its download can be kept between runs.
+      - if: matrix.vscode != 'stable'
+        uses: actions/cache@v6
+        with:
+          path: vscode/.vscode-test
+          key: vscode-test-${{ runner.os }}-${{ matrix.vscode }}
+      # VS Code needs a display: Linux runners have none, so xvfb provides a virtual one.
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:integration
+      - if: runner.os != 'Linux'
+        run: npm run test:integration
+
+  package:
+    name: Package the extension
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+      - run: npm ci
+      # The extension is bundled into dist/extension.js, so node_modules isn't shipped.
+      - run: npx vsce package --no-dependencies --out viewsense-codeigniter.vsix
+      - uses: actions/upload-artifact@v7
+        with:
+          name: viewsense-codeigniter-vsix
+          path: vscode/viewsense-codeigniter.vsix
+          if-no-files-found: error

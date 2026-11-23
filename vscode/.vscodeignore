@@ -1,0 +1,9 @@
+# Everything is bundled into dist/extension.js: ship only what VS Code needs.
+**
+!dist/extension.js
+!schemas/**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+!images/**
