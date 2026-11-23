@@ -9,6 +9,15 @@ CodeIgniter project when you want to:
 
 In VS Code, the file gets completion and checks as you type.
 
+In another editor, add a `$schema` key to get the same help. It's the standard JSON way to name
+the schema of a file, and ViewSense itself ignores it:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/Ezar101/viewsense-codeigniter/main/vscode/schemas/viewsense.schema.json"
+}
+```
+
 ## Example
 
 A CodeIgniter 3 project with a base controller that wraps each page in a layout, and a helper

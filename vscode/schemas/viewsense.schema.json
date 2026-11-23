@@ -6,7 +6,11 @@
   "additionalProperties": false,
   "properties": {
     "$schema": {
-      "type": "string"
+      "description": "Optional. The address of this JSON schema, for editors without the ViewSense extension. VS Code with ViewSense doesn't need it.",
+      "type": "string",
+      "examples": [
+        "https://raw.githubusercontent.com/Ezar101/viewsense-codeigniter/main/vscode/schemas/viewsense.schema.json"
+      ]
     },
     "version": {
       "description": "CodeIgniter version. Detected from the project files when not set.",
