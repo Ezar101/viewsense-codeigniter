@@ -63,7 +63,8 @@ jobs:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
       # The release notes are the section of CHANGELOG.md for this version.
-      # Remove --prerelease when the extension leaves preview (version 1.0.0).
+      # A normal release, not a pre-release: the version already reaches every user of both
+      # stores. The "Preview" badge of the Marketplace comes from package.json instead.
       - name: Create the GitHub release
         run: |
           node -e "
@@ -76,7 +77,6 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" \
             "viewsense-codeigniter-${{ steps.version.outputs.version }}.vsix" \
             --title "VS Code extension ${{ steps.version.outputs.version }}" \
-            --notes-file release-notes.md \
-            --prerelease
+            --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ github.token }}
