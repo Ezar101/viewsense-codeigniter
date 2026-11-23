@@ -7,6 +7,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-23
+
+First preview release.
+
 ### Added
 
 - "ViewSense: Update View Hints" command for CodeIgniter 3 and 4 projects: writes a
@@ -18,3 +22,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - `$this->load->vars()`, the CodeIgniter 4 renderer, and partial views.
 - `.viewsense.json` for your own render methods and helpers.
 - Update on save (`viewsense.updateOnSave`) and warnings on out-of-date blocks.
+
+[Unreleased]: https://github.com/Ezar101/viewsense-codeigniter/compare/vscode-v0.1.0...HEAD
+[0.1.0]: https://github.com/Ezar101/viewsense-codeigniter/releases/tag/vscode-v0.1.0

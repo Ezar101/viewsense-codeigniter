@@ -1,0 +1,73 @@
+name: Publish VS Code extension
+
+# Runs when you push a tag such as vscode-v0.1.0. See docs/publishing.md.
+on:
+  push:
+    tags:
+      - 'vscode-v*'
+
+permissions:
+  # Needed to create the GitHub release with the .vsix file.
+  contents: write
+
+defaults:
+  run:
+    working-directory: vscode
+
+jobs:
+  publish:
+    name: Publish to the VS Code Marketplace and Open VSX
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+      - run: npm ci
+
+      # Refuses a tag that doesn't match package.json, e.g. vscode-v0.2.0 on a 0.1.0 package.
+      - name: Check that the tag matches the version
+        id: version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "${GITHUB_REF_NAME}" != "vscode-v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} doesn't match package.json version ${version}"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - run: npm run check
+
+      - name: Package
+        run: npx vsce package --no-dependencies --out "viewsense-codeigniter-${{ steps.version.outputs.version }}.vsix"
+
+      - name: Publish to the VS Code Marketplace
+        run: npx vsce publish --packagePath "viewsense-codeigniter-${{ steps.version.outputs.version }}.vsix"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Publish to Open VSX
+        run: npx ovsx publish "viewsense-codeigniter-${{ steps.version.outputs.version }}.vsix"
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+
+      # The release notes are the section of CHANGELOG.md for this version.
+      # Remove --prerelease when the extension leaves preview (version 1.0.0).
+      - name: Create the GitHub release
+        run: |
+          node -e "
+            const text = require('fs').readFileSync('CHANGELOG.md', 'utf8');
+            const start = text.indexOf('## [${{ steps.version.outputs.version }}]');
+            const end = text.indexOf('\n## [', start + 1);
+            const section = text.slice(start, end === -1 ? undefined : end).split('\n').slice(1).join('\n');
+            require('fs').writeFileSync('release-notes.md', section.replace(/\n\[[^\]]+\]: .*/g, '').trim() + '\n');
+          "
+          gh release create "${GITHUB_REF_NAME}" \
+            "viewsense-codeigniter-${{ steps.version.outputs.version }}.vsix" \
+            --title "VS Code extension ${{ steps.version.outputs.version }}" \
+            --notes-file release-notes.md \
+            --prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
