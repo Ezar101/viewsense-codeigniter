@@ -20,18 +20,29 @@ and [Open VSX](https://github.com/eclipse/openvsx/wiki/Publishing-Extensions).
 The store pages link to the README, the issues and the license on GitHub, so they must be
 public. In the repository, open **Settings > General > Danger Zone > Change visibility**.
 
-### 2. VS Code Marketplace publisher and token
+### 2. VS Code Marketplace publisher and Trusted Publishing
+
+The workflow publishes to the Marketplace with **Trusted Publishing**: GitHub Actions proves its
+identity with OpenID Connect (OIDC), so no Marketplace token is created, stored or renewed. You
+don't need Azure DevOps or the Azure portal. (Azure DevOps "global" personal access tokens, the
+old way, are retired on December 1, 2026.)
 
 1. Open the [publisher management page](https://marketplace.visualstudio.com/manage) and sign in
    with a Microsoft account.
-2. Create a publisher whose **ID** is `ezar101`: it must match `publisher` in
-   `vscode/package.json`.
-3. Open [Azure DevOps](https://dev.azure.com) with the same account (create an organization if
-   it asks for one), then **User settings > Personal access tokens > New Token**:
-   - Organization: **All accessible organizations**
-   - Scopes: **Custom defined**, then **Marketplace > Manage**
-   - Expiration: up to one year. Write the date down: you'll need a new token then.
-4. Copy the token. You won't see it again.
+2. Click **Create publisher** and fill in:
+   - **ID**: `ezar101`. It must match `publisher` in `vscode/package.json`, and it can't be
+     changed later.
+   - **Name**: the display name shown on the store, e.g. `Ezar101`.
+3. In the publisher, open the **Trusted Publishing** tab and create a policy:
+   - Policy name: any name, e.g. `VS Code extension release`
+   - Provider: **GitHub Actions**
+   - Repository owner: `Ezar101`
+   - Repository: `viewsense-codeigniter`, the name **without** the owner
+   - Workflow: `vscode-publish.yml`, the file name only
+   - Environment: leave it empty, unless the publish job runs in a GitHub environment. In that
+     case, enter the environment name: only runs in that environment can publish.
+
+   Only this workflow of this repository can then publish as `ezar101`.
 
 ### 3. Open VSX account, namespace and token
 
@@ -47,15 +58,10 @@ public. In the repository, open **Settings > General > Danger Zone > Change visi
    npx ovsx create-namespace ezar101 -p <your Open VSX token>
    ```
 
-### 4. GitHub secrets
+### 4. GitHub secret
 
-In the repository, open **Settings > Secrets and variables > Actions** and add two repository
-secrets:
-
-| Name | Value |
-|------|-------|
-| `VSCE_PAT` | the Azure DevOps token |
-| `OVSX_PAT` | the Open VSX token |
+In the repository, open **Settings > Secrets and variables > Actions** and add a repository
+secret named `OVSX_PAT`, with the Open VSX token as its value. The Marketplace needs no secret.
 
 ## Each release
 
@@ -82,7 +88,10 @@ The workflow refuses a tag that doesn't match the version in `package.json`.
 
 ## When something goes wrong
 
-- **The token expired** (`401` or `Unauthorized`): create a new token and update the secret.
+- **The Marketplace refuses the workflow** (`401`, `403` or `Unauthorized`): check the Trusted
+  Publishing policy of the publisher. The repository and the workflow file name must match
+  exactly, e.g. after a rename.
+- **The Open VSX token expired:** create a new token and update the `OVSX_PAT` secret.
 - **One store worked, the other failed:** fix the cause, then publish the same `.vsix` by hand
   from the GitHub release, e.g. `npx ovsx publish viewsense-codeigniter-0.2.0.vsix -p <token>`.
   Don't push the tag again: a store refuses a version it already has.

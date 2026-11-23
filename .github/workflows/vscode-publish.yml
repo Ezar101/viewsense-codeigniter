@@ -9,6 +9,9 @@ on:
 permissions:
   # Needed to create the GitHub release with the .vsix file.
   contents: write
+  # Lets the job prove its identity to the VS Code Marketplace (Trusted Publishing, OIDC):
+  # no Marketplace token is stored anywhere.
+  id-token: write
 
 defaults:
   run:
@@ -43,10 +46,10 @@ jobs:
       - name: Package
         run: npx vsce package --no-dependencies --out "viewsense-codeigniter-${{ steps.version.outputs.version }}.vsix"
 
+      # Needs a Trusted Publishing policy for this repository and workflow on the publisher
+      # management page. See docs/publishing.md.
       - name: Publish to the VS Code Marketplace
-        run: npx vsce publish --packagePath "viewsense-codeigniter-${{ steps.version.outputs.version }}.vsix"
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --oidc --packagePath "viewsense-codeigniter-${{ steps.version.outputs.version }}.vsix"
 
       - name: Publish to Open VSX
         run: npx ovsx publish "viewsense-codeigniter-${{ steps.version.outputs.version }}.vsix"
