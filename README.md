@@ -33,6 +33,8 @@ so you get "undefined variable" warnings and no autocompletion, unless you write
 ViewSense finds these calls for you and writes the `@var` lines, with the types it can infer.
 Your PHP extension (Intelephense, PHP Tools...) does the rest.
 
+![Autocompletion of a product's properties in a CodeIgniter 4 view, thanks to the generated block](vscode/images/screenshot-completion.png)
+
 ## Tools
 
 | Tool                         | Status          | Install                                                                                                                                                                            |
