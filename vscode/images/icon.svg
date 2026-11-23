@@ -14,18 +14,16 @@
   <!-- Rounded square background -->
   <rect width="128" height="128" rx="26" fill="url(#background)"/>
 
-  <!-- The eye: "View" -->
-  <path d="M14 64 C34 30 94 30 114 64 C94 98 34 98 14 64 Z" fill="#FFFFFF"/>
-
-  <!-- The iris -->
-  <circle cx="64" cy="64" r="25" fill="url(#iris)"/>
-
-  <!-- The PHP variable sign "$", drawn as strokes so no font is needed -->
-  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M64 45 V83" stroke-width="4"/>
-    <path d="M73.5 54.5 C71 49.5 58 48.5 56 55.5 C54 62.5 73 61.5 73 70.5 C73 78.5 58 79.5 54.5 73.5" stroke-width="5.5"/>
+  <!-- Code brackets "< >": a view template -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M27 44 L11 64 L27 84"/>
+    <path d="M101 44 L117 64 L101 84"/>
   </g>
 
-  <!-- Light reflection on the iris -->
-  <circle cx="75" cy="52" r="4" fill="#FFFFFF" fill-opacity="0.85"/>
+  <!-- The eye: "View" -->
+  <path d="M34 64 C46 41 82 41 94 64 C82 87 46 87 34 64 Z" fill="#FFFFFF"/>
+
+  <!-- The iris, with a light reflection -->
+  <circle cx="64" cy="64" r="14" fill="url(#iris)"/>
+  <circle cx="69.5" cy="58.5" r="3.5" fill="#FFFFFF" fill-opacity="0.85"/>
 </svg>
