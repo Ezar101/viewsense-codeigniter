@@ -1,0 +1,59 @@
+name: Bug report
+description: A view gets wrong or missing variables, or the extension misbehaves.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. For a security problem, please use the
+        [private reporting](https://github.com/Ezar101/viewsense-codeigniter/security) instead.
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool
+      options:
+        - VS Code extension
+        - PhpStorm plugin
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: ViewSense, your editor, your PHP extension, CodeIgniter and PHP.
+      placeholder: ViewSense 0.1.0, VS Code 1.147, Intelephense 1.14, CodeIgniter 4.6, PHP 8.3
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Code that shows the problem
+      description: A small controller and view, without private code. Remove what isn't needed.
+      render: php
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected block
+      description: The `@var` lines you expected at the top of the view.
+      render: php
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The block ViewSense wrote, an error message, or what went wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: ViewSense log
+      description: "In VS Code: View > Output, then pick ViewSense in the list."
+      render: text
+  - type: textarea
+    id: config
+    attributes:
+      label: .viewsense.json
+      description: If your project has one.
+      render: json

@@ -1,0 +1,24 @@
+name: Feature request
+description: A CodeIgniter pattern ViewSense should understand, or another idea.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: code
+    attributes:
+      label: Your code today
+      description: The controller, helper or view code you write today. A real example helps most.
+      render: php
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: What the editor should know
+      description: The variables and types you'd like ViewSense to find, or the behavior you'd like.
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: How you handle it today, e.g. hand-written `@var` comments or `.viewsense.json`.
