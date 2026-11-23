@@ -39,10 +39,10 @@ old way, are retired on December 1, 2026.)
    - Repository owner: `Ezar101`
    - Repository: `viewsense-codeigniter`, the name **without** the owner
    - Workflow: `vscode-publish.yml`, the file name only
-   - Environment: leave it empty, unless the publish job runs in a GitHub environment. In that
-     case, enter the environment name: only runs in that environment can publish.
+   - Environment: `marketplace`, the protected GitHub environment of step 4
 
-   Only this workflow of this repository can then publish as `ezar101`.
+   Only this workflow of this repository, running in that environment, can then publish as
+   `ezar101`.
 
 ### 3. Open VSX account, namespace and token
 
@@ -58,10 +58,24 @@ old way, are retired on December 1, 2026.)
    npx ovsx create-namespace ezar101 -p <your Open VSX token>
    ```
 
-### 4. GitHub secret
+### 4. Protected GitHub environment
 
-In the repository, open **Settings > Secrets and variables > Actions** and add a repository
-secret named `OVSX_PAT`, with the Open VSX token as its value. The Marketplace needs no secret.
+The publish job runs in a GitHub environment named `marketplace`. It waits for your approval
+before it starts, so a tag pushed by mistake publishes nothing. It also holds the Open VSX token:
+only an approved publish job can read it.
+
+In the repository, open **Settings > Environments > New environment**, name it `marketplace`,
+then:
+
+1. **Required reviewers:** check it and add yourself. Leave **Prevent self-review** unchecked,
+   or you couldn't approve your own releases.
+2. **Deployment branches and tags:** choose **Selected branches and tags**, then add a **tag**
+   rule with the pattern `vscode-v*`. Only release tags can then use this environment.
+3. **Environment secrets:** add `OVSX_PAT`, with the Open VSX token as its value. The Marketplace
+   needs no secret.
+
+If an `OVSX_PAT` **repository** secret exists from an older setup (**Settings > Secrets and
+variables > Actions**), delete it: the environment secret replaces it.
 
 ## Each release
 
@@ -77,8 +91,10 @@ secret named `OVSX_PAT`, with the Open VSX token as its value. The Marketplace n
    git push origin vscode-v0.2.0
    ```
 
-5. Follow the **Publish VS Code extension** workflow in the **Actions** tab. When it's done,
-   check the store pages:
+5. In the **Actions** tab, open the **Publish VS Code extension** run. It waits with the status
+   **Waiting**: click **Review deployments**, check `marketplace` and click **Approve and
+   deploy**. GitHub also sends you a notification.
+6. When it's done, check the store pages:
    - <https://marketplace.visualstudio.com/items?itemName=ezar101.viewsense-codeigniter>
    - <https://open-vsx.org/extension/ezar101/viewsense-codeigniter>
 
@@ -89,9 +105,12 @@ The workflow refuses a tag that doesn't match the version in `package.json`.
 ## When something goes wrong
 
 - **The Marketplace refuses the workflow** (`401`, `403` or `Unauthorized`): check the Trusted
-  Publishing policy of the publisher. The repository and the workflow file name must match
-  exactly, e.g. after a rename.
-- **The Open VSX token expired:** create a new token and update the `OVSX_PAT` secret.
+  Publishing policy of the publisher. The repository, the workflow file name and the environment
+  (`marketplace`) must match exactly, e.g. after a rename.
+- **The run never starts:** it's waiting for your approval (step 5), or the tag doesn't match
+  the `vscode-v*` rule of the environment.
+- **The Open VSX token expired:** create a new token and update the `OVSX_PAT` secret of the
+  `marketplace` environment.
 - **One store worked, the other failed:** fix the cause, then publish the same `.vsix` by hand
   from the GitHub release, e.g. `npx ovsx publish viewsense-codeigniter-0.2.0.vsix -p <token>`.
   Don't push the tag again: a store refuses a version it already has.

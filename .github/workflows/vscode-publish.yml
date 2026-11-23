@@ -21,6 +21,12 @@ jobs:
   publish:
     name: Publish to the VS Code Marketplace and Open VSX
     runs-on: ubuntu-latest
+    # The protected "marketplace" environment waits for a maintainer's approval before the job
+    # starts, holds the OVSX_PAT secret, and is the only environment the Marketplace Trusted
+    # Publishing policy accepts. See docs/publishing.md.
+    environment:
+      name: marketplace
+      url: https://marketplace.visualstudio.com/items?itemName=ezar101.viewsense-codeigniter
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
