@@ -44,6 +44,9 @@ old way, are retired on December 1, 2026.)
    Only this workflow of this repository, running in that environment, can then publish as
    `ezar101`.
 
+   A policy can't be edited: to change it, create the new policy first, then delete the old one
+   with **Delete**.
+
 ### 3. Open VSX account, namespace and token
 
 1. Create an [Eclipse account](https://accounts.eclipse.org/user/register). In its profile, fill
