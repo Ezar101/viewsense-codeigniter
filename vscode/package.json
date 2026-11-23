@@ -2,7 +2,7 @@
   "name": "viewsense-codeigniter",
   "displayName": "ViewSense for CodeIgniter",
   "description": "Knows the variables your controllers pass to your CodeIgniter 3 and 4 views, and their types: no more hand-written @var comments.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "preview": true,
   "private": true,
   "publisher": "ezar101",

@@ -47,9 +47,23 @@ export class ClassIndex {
    * CodeIgniter instance, so any controller, model or view can reach it through `$this`.
    */
   private readonly instanceProperties = new Map<string, PhpType>();
+  /** Return types of the project's own functions (helpers), keyed by lowercase short name. */
+  private readonly functions = new Map<string, PhpType>();
 
   add(info: ClassInfo): void {
     this.classes.set(key(info.name), info);
+  }
+
+  addFunction(name: string, returnType: PhpType): void {
+    this.functions.set(shortName(name), returnType);
+  }
+
+  /**
+   * Return type of a project function. Functions are matched by their short name: PHP falls back
+   * to the global function when a namespace has none, and CodeIgniter helpers are global.
+   */
+  functionReturnType(name: string): PhpType | undefined {
+    return this.functions.get(shortName(name));
   }
 
   addInstanceProperty(name: string, type: PhpType): void {
@@ -179,4 +193,8 @@ function modelMethodType(chain: ClassInfo[], method: string): PhpType | undefine
 
 function key(name: string): string {
   return name.replace(/^\\/, '').toLowerCase();
+}
+
+function shortName(name: string): string {
+  return (name.split('\\').at(-1) ?? name).toLowerCase();
 }

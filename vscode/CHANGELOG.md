@@ -7,6 +7,13 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed
+
+- Function calls no longer give `mixed`: `'title' => sprintf(...)` now gives `string`. ViewSense
+  knows the return type of common PHP functions and CodeIgniter helpers (`sprintf`,
+  `number_format`, `count`, `site_url`, `form_open`...), and reads the native return type or
+  `@return` of your own helper functions.
+
 ## [0.1.1] - 2026-11-24
 
 ### Fixed

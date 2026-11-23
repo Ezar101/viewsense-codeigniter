@@ -1,6 +1,7 @@
 import { identifierName, isNode, nodeArray, stringValue, type PhpNode } from '../php/ast';
 import type { ClassIndex } from '../php/classIndex';
 import { classTypeName, type NameContext } from '../php/names';
+import { knownFunctionType } from './knownFunctions';
 import { MIXED, phpType, unionTypes, type PhpType } from './phpType';
 
 export interface InferenceContext {
@@ -197,16 +198,28 @@ function inferCall(node: PhpNode, context: InferenceContext): PhpType {
   return MIXED;
 }
 
-/** CodeIgniter 4 `model('ProductModel')` and `model(ProductModel::class)` give the model. */
+/** Return type of a function call: `model()`, a project helper, or a known PHP or CI function. */
 function inferFunctionCall(
   name: string | null,
   args: PhpNode[],
   context: InferenceContext,
 ): PhpType {
-  if (name?.toLowerCase() !== 'model' || args[0] === undefined) {
+  if (name === null) {
     return MIXED;
   }
+  if (name.toLowerCase() === 'model') {
+    return inferModelCall(args, context);
+  }
+  // A project helper first: CodeIgniter 3 lets MY_ helpers replace the built-in ones.
+  return context.classes.functionReturnType(name) ?? knownFunctionType(name) ?? MIXED;
+}
+
+/** CodeIgniter 4 `model('ProductModel')` and `model(ProductModel::class)` give the model. */
+function inferModelCall(args: PhpNode[], context: InferenceContext): PhpType {
   const argument = args[0];
+  if (argument === undefined) {
+    return MIXED;
+  }
 
   if (argument.kind === 'staticlookup' && identifierName(argument.offset) === 'class') {
     return isNode(argument.what) ? classType(context.names.resolveClass(argument.what)) : MIXED;

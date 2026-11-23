@@ -188,6 +188,73 @@ describe('CodeIgniter 3 loader', () => {
   });
 });
 
+describe('function calls', () => {
+  it('knows common PHP functions and CodeIgniter helpers', () => {
+    const view = `
+      view('order', [
+        'pageTitle' => sprintf('Order #%s', $number),
+        'total' => number_format($amount, 2),
+        'count' => count($items),
+        'json' => json_encode($items),
+        'tags' => explode(',', $list),
+        'qualified' => \\strtoupper($name),
+        'url' => site_url('orders'),
+        'ci' => get_instance(),
+        'unknown' => some_function(),
+        'sameAsInput' => str_replace('a', 'b', $text),
+      ]);
+    `;
+    expect(viewTypes(view)).toEqual({
+      pageTitle: 'string',
+      total: 'string',
+      count: 'int',
+      json: 'false|string',
+      tags: 'array',
+      qualified: 'string',
+      url: 'string',
+      ci: '\\CI_Controller',
+      unknown: 'mixed',
+      sameAsInput: 'mixed',
+    });
+  });
+
+  it("reads the project's own helpers, which win over the known functions", () => {
+    const helpers = `
+      /** @return Product[] */
+      function featured_products() { return []; }
+      function format_price(float $price): string { return ''; }
+      function maybe_order(): ?Order { return null; }
+      // A MY_ helper that replaces a CodeIgniter one.
+      function site_url($uri = ''): array { return []; }
+      function no_type() { return 1; }
+    `;
+    const view = `
+      view('home', [
+        'featured' => featured_products(),
+        'price' => format_price(9.5),
+        'order' => maybe_order(),
+        'url' => site_url(),
+        'untyped' => no_type(),
+      ]);
+    `;
+    expect(viewTypes(helpers, view)).toEqual({
+      featured: '\\Product[]',
+      price: 'string',
+      order: '\\Order|null',
+      url: 'array',
+      untyped: 'mixed',
+    });
+  });
+
+  it('reads helpers declared in a namespace', () => {
+    const helpers =
+      'namespace App\\Helpers; use App\\Entities\\Product; function first_product(): Product {}';
+    expect(viewTypes(helpers, "view('home', ['p' => first_product()]);")).toEqual({
+      p: '\\App\\Entities\\Product',
+    });
+  });
+});
+
 describe('CodeIgniter 4 models', () => {
   const ENTITY_MODEL = `
     namespace App\\Models;

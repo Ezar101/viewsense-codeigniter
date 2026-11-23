@@ -57,6 +57,9 @@ export function indexFile(code: string, fileName: string, index: ClassIndex): vo
       if (node.kind === 'class') {
         builders.push(readClass(node, names, context));
       } else if (isFunctionLike(node)) {
+        if (node.kind === 'function') {
+          readFunction(node, names, index);
+        }
         functionDepth += 1;
       } else if (node.kind === 'call') {
         trackLoaderCall(node, index);
@@ -151,20 +154,41 @@ function readMethod(
   context: InferenceContext,
 ): void {
   const name = identifierName(method.name);
-  if (name === null) {
-    return;
+  const returnType = declaredReturnType(method, docType, context);
+  if (name !== null && returnType !== undefined) {
+    builder.methods.set(name.toLowerCase(), returnType);
   }
+}
 
-  // `@return Product[]` says more than the native `: array`, so it wins.
-  const returnTag = docTagsOf(method).find((tag) => tag.name === 'return');
-  if (returnTag !== undefined) {
-    builder.methods.set(name.toLowerCase(), docType(returnTag.text.split(/\s+/)[0] ?? ''));
-  } else if (isNode(method.type)) {
-    builder.methods.set(
-      name.toLowerCase(),
-      typeFromDeclaration(method.type, method.nullable === true, context),
-    );
+/** A helper function such as `function format_price(float $price): string`. */
+function readFunction(node: PhpNode, names: NameContext, index: ClassIndex): void {
+  const name = identifierName(node.name);
+  const context: InferenceContext = {
+    names,
+    classes: new ClassIndex(),
+    variableType: () => undefined,
+  };
+  const docType = (text: string): PhpType =>
+    parseDocType(text, (className) => names.resolveName(className), null);
+  const returnType = declaredReturnType(node, docType, context);
+  if (name !== null && returnType !== undefined) {
+    index.addFunction(name, returnType);
   }
+}
+
+/** Return type of a method or function. `@return Product[]` says more than `: array`, so it wins. */
+function declaredReturnType(
+  node: PhpNode,
+  docType: (text: string) => PhpType,
+  context: InferenceContext,
+): PhpType | undefined {
+  const returnTag = docTagsOf(node).find((tag) => tag.name === 'return');
+  if (returnTag !== undefined) {
+    return docType(returnTag.text.split(/\s+/)[0] ?? '');
+  }
+  return isNode(node.type)
+    ? typeFromDeclaration(node.type, node.nullable === true, context)
+    : undefined;
 }
 
 /** `protected $returnType = Product::class;` or `= 'array';` in a CodeIgniter 4 model. */
