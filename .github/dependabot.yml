@@ -9,6 +9,11 @@ updates:
       # One pull request for all development tools instead of one per package.
       development:
         dependency-type: development
+    ignore:
+      # typescript-eslint only supports TypeScript below 6.1 for now. Remove this rule when its
+      # peer dependency accepts newer versions.
+      - dependency-name: typescript
+        versions: ['>=6.1.0']
   - package-ecosystem: github-actions
     directory: /
     schedule:
