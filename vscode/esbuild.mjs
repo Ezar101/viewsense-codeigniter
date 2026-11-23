@@ -10,8 +10,8 @@ const context = await esbuild.context({
   bundle: true,
   format: 'cjs',
   platform: 'node',
-  // VS Code 1.95 runs extensions on Node.js 20.
-  target: 'node20',
+  // VS Code 1.101 (the oldest supported version) runs extensions on Node.js 22.
+  target: 'node22',
   outfile: 'dist/extension.js',
   // Provided by VS Code at runtime, never bundled.
   external: ['vscode'],

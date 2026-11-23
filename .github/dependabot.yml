@@ -17,7 +17,12 @@ updates:
       # @types/vscode must match the oldest supported VS Code (engines.vscode in package.json),
       # or vsce refuses to package the extension. Raise both together, on purpose.
       - dependency-name: "@types/vscode"
-        versions: [">=1.96.0"]
+        versions: [">=1.102.0"]
+      # @types/node must not get ahead of the Node.js that runs the extension inside VS Code,
+      # or TypeScript would accept functions that don't exist there. VS Code 1.101 runs
+      # Node 22, and Vitest needs 22 or later.
+      - dependency-name: "@types/node"
+        versions: [">=23.0.0"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

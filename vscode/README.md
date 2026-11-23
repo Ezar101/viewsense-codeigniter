@@ -83,4 +83,4 @@ npm run test:integration
 ```
 
 The first run downloads VS Code (about 150 MB) into `.vscode-test/`. To test another version,
-set `VSCODE_TEST_VERSION`, e.g. `VSCODE_TEST_VERSION=1.95.0` for the oldest supported one.
+set `VSCODE_TEST_VERSION`, e.g. `VSCODE_TEST_VERSION=1.101.0` for the oldest supported one.

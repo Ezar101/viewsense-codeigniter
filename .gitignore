@@ -26,3 +26,5 @@ Thumbs.db
 # VS Code downloaded by the integration tests, and their workspace
 .vscode-test/
 .test-workspace/
+
+.claude/settings.local.json

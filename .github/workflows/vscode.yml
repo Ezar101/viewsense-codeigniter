@@ -49,7 +49,7 @@ jobs:
         include:
           # The oldest version the extension supports (engines.vscode in package.json).
           - os: ubuntu-latest
-            vscode: 1.95.0
+            vscode: 1.101.0
           - os: ubuntu-latest
             vscode: stable
           - os: windows-latest
