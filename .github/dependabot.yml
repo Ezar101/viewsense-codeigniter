@@ -13,7 +13,11 @@ updates:
       # typescript-eslint only supports TypeScript below 6.1 for now. Remove this rule when its
       # peer dependency accepts newer versions.
       - dependency-name: typescript
-        versions: ['>=6.1.0']
+        versions: [">=6.1.0"]
+      # @types/vscode must match the oldest supported VS Code (engines.vscode in package.json),
+      # or vsce refuses to package the extension. Raise both together, on purpose.
+      - dependency-name: "@types/vscode"
+        versions: [">=1.96.0"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

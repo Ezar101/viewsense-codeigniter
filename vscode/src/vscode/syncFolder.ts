@@ -129,11 +129,33 @@ async function writeGeneratedFile(uri: vscode.Uri, content: string): Promise<boo
 /** Result of writing the block into one view file. */
 type WriteResult = 'updated' | 'unchanged' | 'skipped';
 
+/** Views ViewSense is saving itself: their save must not start another analysis. */
+const ownSaves = new Set<string>();
+
+export function isOwnSave(uri: vscode.Uri): boolean {
+  return ownSaves.has(uri.toString());
+}
+
 async function writeHintBlock(uri: vscode.Uri, variables: ViewVariables): Promise<WriteResult> {
-  // A view with unsaved changes: edit the editor content, so those changes aren't lost.
+  // An open view is always changed through its editor. Writing the file on disk behind the
+  // editor's back would race with what the user types ("file has changed in the meantime").
   const openDocument = findOpenDocument(uri);
-  if (openDocument?.isDirty === true) {
-    return (await editDocument(openDocument, variables)) ? 'updated' : 'unchanged';
+  if (openDocument !== undefined) {
+    const wasDirty = openDocument.isDirty;
+    if (!(await editDocument(openDocument, variables))) {
+      return 'unchanged';
+    }
+    // Save a view that had no unsaved changes, so the file on disk is up to date too. A view
+    // with unsaved changes stays unsaved: the user decides when to save their own work.
+    if (!wasDirty) {
+      ownSaves.add(uri.toString());
+      try {
+        await openDocument.save();
+      } finally {
+        ownSaves.delete(uri.toString());
+      }
+    }
+    return 'updated';
   }
 
   const current = decodeUtf8(await vscode.workspace.fs.readFile(uri));

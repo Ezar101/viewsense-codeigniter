@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { CONFIG_FILE } from '../core/project/config';
-import { syncFolder, type SyncMode, type SyncResult } from './syncFolder';
+import { isOwnSave, syncFolder, type SyncMode, type SyncResult } from './syncFolder';
 
 /** Diagnostic code of an out-of-date block, used by the quick fix. */
 export const OUTDATED_CODE = 'outdated-hints';
@@ -65,7 +65,7 @@ export class ViewHints implements vscode.Disposable {
   /** A PHP file or `.viewsense.json` was saved: update or check its project, after a pause. */
   onDidSave(document: vscode.TextDocument): void {
     const isConfig = document.uri.path.endsWith(`/${CONFIG_FILE}`);
-    if (document.languageId !== 'php' && !isConfig) {
+    if ((document.languageId !== 'php' && !isConfig) || isOwnSave(document.uri)) {
       return;
     }
     const folder = vscode.workspace.getWorkspaceFolder(document.uri);
