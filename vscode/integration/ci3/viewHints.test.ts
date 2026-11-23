@@ -83,6 +83,11 @@ suite('CodeIgniter 3 project', () => {
     await vscode.commands.executeCommand(fix.command.command, ...fixArguments);
     assert.match(await readText(LIST_VIEW), /\/\*\* @var int \$greeting \*\//);
     assert.equal(viewSenseDiagnostics(LIST_VIEW).length, 0);
+
+    // The open view was changed through its editor, then saved: editor and disk agree.
+    const document = await vscode.workspace.openTextDocument(projectUri(LIST_VIEW));
+    assert.equal(document.isDirty, false);
+    assert.equal(document.getText(), await readText(LIST_VIEW));
   });
 
   test('keeps the unsaved changes of an open view', async () => {
