@@ -7,6 +7,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-24
+
+### Fixed
+
+- CodeIgniter 4: no more "Expected type 'string|Stringable|null'. Found 'void'" warning on
+  `<?= $this->extend() ?>`, `<?= $this->section() ?>` and `<?= $this->endSection() ?>`, the way
+  the CodeIgniter docs write them. `$this` is now `ViewSense_CI4_View`, a class generated in
+  `.viewsense/ci4_view.php`.
+- Class names in the blocks start with a backslash (`\Product`), so PHP Namespace Resolver no
+  longer reports them as "not imported".
+
 ## [0.1.0] - 2026-11-23
 
 First preview release.
@@ -23,5 +34,6 @@ First preview release.
 - `.viewsense.json` for your own render methods and helpers.
 - Update on save (`viewsense.updateOnSave`) and warnings on out-of-date blocks.
 
-[Unreleased]: https://github.com/Ezar101/viewsense-codeigniter/compare/vscode-v0.1.0...HEAD
+[Unreleased]: https://github.com/Ezar101/viewsense-codeigniter/compare/vscode-v0.1.1...HEAD
+[0.1.1]: https://github.com/Ezar101/viewsense-codeigniter/compare/vscode-v0.1.0...vscode-v0.1.1
 [0.1.0]: https://github.com/Ezar101/viewsense-codeigniter/releases/tag/vscode-v0.1.0

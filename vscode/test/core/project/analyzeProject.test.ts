@@ -109,14 +109,14 @@ describe('analyzeProject', () => {
     const listVariables = {
       site_name: 'string',
       title: 'string|null',
-      products: 'Product[]',
+      products: '\\Product[]',
       page: 'int|string',
     };
     expect(await analyzeFixture('ci3')).toEqual({
-      'application/views/products/list.php': { this: 'ViewSense_CI3_View', ...listVariables },
+      'application/views/products/list.php': { this: '\\ViewSense_CI3_View', ...listVariables },
       'application/views/products/show.php': {
         site_name: 'string',
-        product: 'Product|null',
+        product: '\\Product|null',
         in_cart: 'bool',
       },
       // From `$this->render()`, declared in .viewsense.json.
@@ -124,19 +124,19 @@ describe('analyzeProject', () => {
         site_name: 'string',
         title: 'string',
         errors: 'array',
-        product: 'Product',
+        product: '\\Product',
       },
       // The render() rule names this layout: it gets the same data as products/form.
       'application/views/layouts/main.php': {
-        this: 'ViewSense_CI3_View',
+        this: '\\ViewSense_CI3_View',
         site_name: 'string',
         content: 'mixed',
         title: 'string',
         errors: 'array',
-        product: 'Product',
+        product: '\\Product',
       },
       // The partial gets the variables of products/list, and `$product` from its foreach.
-      'application/views/partials/product_card.php': { ...listVariables, product: 'Product' },
+      'application/views/partials/product_card.php': { ...listVariables, product: '\\Product' },
       // From `include_view()`, declared in .viewsense.json.
       'application/views/partials/pagination.php': listVariables,
     });
@@ -145,12 +145,12 @@ describe('analyzeProject', () => {
   it('gives the variables of each CodeIgniter 4 view file', async () => {
     expect(await analyzeFixture('ci4')).toEqual({
       'app/Views/products/index.php': {
-        this: '\\CodeIgniter\\View\\View',
+        this: '\\ViewSense_CI4_View',
         title: 'string',
         products: '\\App\\Entities\\Product[]',
       },
       'app/Views/products/show.php': {
-        this: '\\CodeIgniter\\View\\View',
+        this: '\\ViewSense_CI4_View',
         product: '\\App\\Entities\\Product|null',
       },
       'app/Views/products/form.php': {
@@ -158,7 +158,7 @@ describe('analyzeProject', () => {
         product: '\\App\\Entities\\Product',
         errors: 'array',
       },
-      'app/Views/layouts/main.php': { this: '\\CodeIgniter\\View\\View' },
+      'app/Views/layouts/main.php': { this: '\\ViewSense_CI4_View' },
       // From products/index (view() in a foreach) and products/show ($this->include()).
       'app/Views/partials/product_card.php': {
         title: 'string',
@@ -211,22 +211,34 @@ describe('analyzeProject', () => {
     ]);
   });
 
-  it('generates the class of $this for CodeIgniter 3 only', async () => {
+  it('generates the class of $this for each version', async () => {
     expect([...(await generatedFiles('ci3')).keys()]).toEqual([
       '.viewsense/ci3_view.php',
       '.viewsense/.gitignore',
     ]);
-    expect((await generatedFiles('ci4')).size).toBe(0);
+    expect([...(await generatedFiles('ci4')).keys()]).toEqual([
+      '.viewsense/ci4_view.php',
+      '.viewsense/.gitignore',
+    ]);
+  });
+
+  it('generates no file when no view uses $this', async () => {
+    const files = memoryFiles({
+      spark: '',
+      'app/Controllers/Home.php': "<?php view('home', ['a' => 1]);",
+      'app/Views/home.php': '<p><?= $a ?></p>',
+    });
+    expect((await analyze(files)).generatedFiles.size).toBe(0);
   });
 
   it('describes the loader and what the controllers reach in the CodeIgniter 3 stub', async () => {
     const stub = (await generatedFiles('ci3')).get('.viewsense/ci3_view.php') ?? '';
 
-    expect(stub).toContain('class ViewSense_CI3_View extends CI_Loader');
-    expect(stub).toContain(' * @property CI_Input $input\n');
-    expect(stub).toContain(' * @property Cart $cart\n');
-    expect(stub).toContain(' * @property Product_model $products\n');
-    expect(stub).toContain(' * @property Product_model $product_model\n');
+    expect(stub).toContain('class ViewSense_CI3_View extends \\CI_Loader');
+    expect(stub).toContain(' * @property \\CI_Input $input\n');
+    expect(stub).toContain(' * @property \\Cart $cart\n');
+    expect(stub).toContain(' * @property \\Product_model $products\n');
+    expect(stub).toContain(' * @property \\Product_model $product_model\n');
   });
 
   it('does not count the $this line of its own block as a use of $this', async () => {

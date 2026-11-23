@@ -5,14 +5,26 @@ import { applyHintBlock } from '../../../src/core/views/hintBlock';
 import {
   ci3ViewProperties,
   renderCi3ViewStub,
+  renderCi4ViewStub,
   usesThis,
   viewThisType,
 } from '../../../src/core/views/viewThis';
 
 describe('viewThisType', () => {
-  it('is the view renderer in CodeIgniter 4 and the generated class in CodeIgniter 3', () => {
-    expect(formatType(viewThisType(4))).toBe('\\CodeIgniter\\View\\View');
-    expect(formatType(viewThisType(3))).toBe('ViewSense_CI3_View');
+  it('is a generated class for each version, written fully qualified', () => {
+    expect(formatType(viewThisType(4))).toBe('\\ViewSense_CI4_View');
+    expect(formatType(viewThisType(3))).toBe('\\ViewSense_CI3_View');
+  });
+});
+
+describe('renderCi4ViewStub', () => {
+  it('extends the view renderer and lets extend(), section() and endSection() be printed', () => {
+    const stub = renderCi4ViewStub();
+
+    expect(stub).toContain('class ViewSense_CI4_View extends \\CodeIgniter\\View\\View');
+    expect(stub).toContain(' * @method null extend(string $layout)\n');
+    expect(stub).toContain(' * @method null section(string $name)\n');
+    expect(stub).toContain(' * @method null endSection()\n');
   });
 });
 
@@ -59,12 +71,12 @@ describe('ci3ViewProperties', () => {
       return type === undefined ? undefined : formatType(type);
     };
 
-    expect(typeOf('load')).toBe('CI_Loader');
-    expect(typeOf('input')).toBe('CI_Input');
-    expect(typeOf('session')).toBe('Session');
+    expect(typeOf('load')).toBe('\\CI_Loader');
+    expect(typeOf('input')).toBe('\\CI_Input');
+    expect(typeOf('session')).toBe('\\Session');
     expect(typeOf('title')).toBe('string|null');
     // A view can't know which controller renders it: MY_Controller says Cart, Shop says Basket.
-    expect(typeOf('cart')).toBe('Basket|Cart');
+    expect(typeOf('cart')).toBe('\\Basket|\\Cart');
     expect(typeOf('notInViews')).toBeUndefined();
   });
 });
@@ -73,8 +85,8 @@ describe('renderCi3ViewStub', () => {
   it('writes a class with one @property line per property, sorted by name', () => {
     const stub = renderCi3ViewStub(
       new Map([
-        ['session', phpType('CI_Session')],
-        ['cart', phpType('Cart', 'null')],
+        ['session', phpType('\\CI_Session')],
+        ['cart', phpType('\\Cart', 'null')],
       ]),
     );
 
@@ -87,10 +99,10 @@ describe('renderCi3ViewStub', () => {
         '/**',
         ' * `$this` in a CodeIgniter 3 view: the loader, plus what the controllers can reach.',
         ' *',
-        ' * @property Cart|null $cart',
-        ' * @property CI_Session $session',
+        ' * @property \\Cart|null $cart',
+        ' * @property \\CI_Session $session',
         ' */',
-        'class ViewSense_CI3_View extends CI_Loader',
+        'class ViewSense_CI3_View extends \\CI_Loader',
         '{',
         '}',
         '',

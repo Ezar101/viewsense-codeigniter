@@ -108,5 +108,7 @@ export class NameContext {
 
 /** Writes a class name the way a view file (which has no namespace) must refer to it. */
 export function classTypeName(fullyQualifiedName: string): string {
-  return fullyQualifiedName.includes('\\') ? `\\${fullyQualifiedName}` : fullyQualifiedName;
+  // Always fully qualified, even for a global class (`\Product`): it means the same thing in a
+  // view, and tools such as PHP Namespace Resolver don't flag it as "not imported".
+  return `\\${fullyQualifiedName.replace(/^\\/, '')}`;
 }

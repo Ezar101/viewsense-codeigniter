@@ -249,7 +249,7 @@ function trackLoaderCall(node: PhpNode, index: ClassIndex): void {
       addLoaded(index, name, alias, true);
     }
   } else if (method === 'database') {
-    index.addInstanceProperty('db', phpType('CI_DB_query_builder'));
+    index.addInstanceProperty('db', phpType(classTypeName('CI_DB_query_builder')));
   }
 }
 
@@ -269,7 +269,7 @@ function addLoaded(
   }
   const className = fileName.charAt(0).toUpperCase() + fileName.slice(1);
   const property = alias ?? (lowercase ? fileName.toLowerCase() : fileName);
-  index.addInstanceProperty(property, phpType(className));
+  index.addInstanceProperty(property, phpType(classTypeName(className)));
 }
 
 /**

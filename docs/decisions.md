@@ -43,12 +43,35 @@ loaded models and libraries. No existing class describes that.
 
 **Decision.** Generate `.viewsense/ci3_view.php` with a `ViewSense_CI3_View` class that extends
 `CI_Loader` and lists these properties with `@property`. Views that use `$this` get
-`/** @var ViewSense_CI3_View $this */`.
+`/** @var \ViewSense_CI3_View $this */`.
 
 **Why.** A PHP language server can only learn about properties from a class. One class per
 project keeps things simple: a view can't know which controller renders it, so it gets the
 properties of all controllers, with the union of their types.
 
 **Consequences.** The folder contains a `.gitignore` with `*`, so Git ignores it without any
-change to the project's own `.gitignore`. CodeIgniter 4 needs no generated file: `$this` is
-`CodeIgniter\View\View`.
+change to the project's own `.gitignore`.
+
+## 4. `$this` in CodeIgniter 4 views: a generated class too (0.1.1)
+
+**Context.** In a CodeIgniter 4 view, `$this` is `CodeIgniter\View\View`. Its `extend()`,
+`section()` and `endSection()` methods return `void`, but the CodeIgniter docs write
+`<?= $this->extend('layout') ?>`. Once `$this` is typed, Intelephense reports each of these lines:
+"Expected type 'string|Stringable|null'. Found 'void'".
+
+**Decision.** Generate `.viewsense/ci4_view.php` with a `ViewSense_CI4_View` class that extends
+`CodeIgniter\View\View` and declares these three methods with `@method null ...`.
+
+**Why.** A `void` function returns `null` at runtime, so `null` is the true type of what `<?=`
+prints. Tested with Intelephense: the `@method` lines take over the inherited signatures, and the
+other methods of the view renderer still complete.
+
+## 5. Fully qualified class names in the blocks (0.1.1)
+
+**Context.** PHP Namespace Resolver, a popular extension, reports a global class written without
+a leading backslash (`Product`) as "not imported", even in a view without a namespace.
+
+**Decision.** Write every class name with a leading backslash: `\Product`, `\ViewSense_CI3_View`.
+
+**Why.** In a file without a namespace, both forms mean the same class, so nothing changes for
+PHP or for the PHP language server, and the false warnings go away.

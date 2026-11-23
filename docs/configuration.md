@@ -43,12 +43,12 @@ Now `$this->render('products/form', ['title' => 'New product'])` gives `$title` 
 
 ## Settings
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `version` | `3` or `4` | detected | CodeIgniter version. |
-| `appFolder` | string | `application` (CI3), `app` (CI4) | Folder with the application code, relative to the project root. ViewSense reads every PHP file in it. |
-| `viewsFolder` | string | `views` (CI3) or `Views` (CI4) in the application folder | Folder CodeIgniter loads views from. |
-| `viewCalls` | list | `[]` | Your own methods and functions that render views. |
+| Setting       | Type       | Default                                                  | Description                                                                                           |
+| ------------- | ---------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `version`     | `3` or `4` | detected                                                 | CodeIgniter version.                                                                                  |
+| `appFolder`   | string     | `application` (CI3), `app` (CI4)                         | Folder with the application code, relative to the project root. ViewSense reads every PHP file in it. |
+| `viewsFolder` | string     | `views` (CI3) or `Views` (CI4) in the application folder | Folder CodeIgniter loads views from.                                                                  |
+| `viewCalls`   | list       | `[]`                                                     | Your own methods and functions that render views.                                                     |
 
 ViewSense always understands what CodeIgniter itself provides:
 
@@ -58,13 +58,13 @@ ViewSense always understands what CodeIgniter itself provides:
 
 ## `viewCalls` entries
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `method` | string | | Name of a method: matches `$object->name()` and `Class::name()`. |
-| `function` | string | | Name of a function: matches `name()`. |
-| `view` | integer | `0` | Position of the view name argument, starting at 0. |
-| `data` | integer or `null` | the argument after `view` | Position of the data argument, or `null` when the call passes no data. |
-| `layout` | string | none | A layout view the method also renders with the same data. |
+| Key        | Type              | Default                   | Description                                                            |
+| ---------- | ----------------- | ------------------------- | ---------------------------------------------------------------------- |
+| `method`   | string            |                           | Name of a method: matches `$object->name()` and `Class::name()`.       |
+| `function` | string            |                           | Name of a function: matches `name()`.                                  |
+| `view`     | integer           | `0`                       | Position of the view name argument, starting at 0.                     |
+| `data`     | integer or `null` | the argument after `view` | Position of the data argument, or `null` when the call passes no data. |
+| `layout`   | string            | none                      | A layout view the method also renders with the same data.              |
 
 Each entry needs `method` or `function`, not both. Names ignore case, as in PHP.
 

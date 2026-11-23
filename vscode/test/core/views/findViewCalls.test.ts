@@ -241,10 +241,10 @@ describe('shared data, renderer and partials', () => {
     const code =
       "<?php foreach ($products as $key => $product) { $this->load->view('card', ['product' => $product]); }";
     // `$products` is a variable the view receives: a list of products, or null.
-    const initialVariables = new Map([['products', phpType('Product[]', 'null')]]);
+    const initialVariables = new Map([['products', phpType('\\Product[]', 'null')]]);
 
     const calls = analyzeViewFile(code, 'list.php', { initialVariables }).calls;
-    expect(summarize(calls)).toEqual([{ view: 'card', variables: { product: 'Product' } }]);
+    expect(summarize(calls)).toEqual([{ view: 'card', variables: { product: '\\Product' } }]);
   });
 
   it('records the class each call is in', () => {
@@ -336,7 +336,7 @@ describe('type inference', () => {
     expect(findInSnippet(code)).toEqual([
       {
         view: 'show',
-        variables: { id: 'int', slug: 'string|null', product: 'Product|null', raw: 'mixed' },
+        variables: { id: 'int', slug: 'string|null', product: '\\Product|null', raw: 'mixed' },
       },
     ]);
   });
@@ -347,8 +347,8 @@ describe('type inference', () => {
 });
 
 describe('class names', () => {
-  it('writes global classes without a backslash (CodeIgniter 3)', () => {
-    expect(typeOf('$value = new Product();')).toBe('Product');
+  it('writes global classes with a leading backslash (CodeIgniter 3)', () => {
+    expect(typeOf('$value = new Product();')).toBe('\\Product');
   });
 
   it('resolves imports, aliases, group imports and the current namespace', () => {
@@ -386,7 +386,7 @@ describe('class names', () => {
           orders: '\\App\\Models\\OrderModel',
           local: '\\App\\Controllers\\Helper',
           sub: '\\App\\Entities\\Product\\Variant',
-          absolute: 'DateTimeImmutable',
+          absolute: '\\DateTimeImmutable',
           relative: '\\App\\Controllers\\Helper',
           self: '\\App\\Controllers\\Shop',
           dynamic: 'mixed',

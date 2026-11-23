@@ -45,7 +45,7 @@ describe('properties and methods', () => {
         }
       }
     `;
-    expect(viewTypes(base, controller)).toEqual({ products: 'Product_model', cart: 'Cart' });
+    expect(viewTypes(base, controller)).toEqual({ products: '\\Product_model', cart: '\\Cart' });
   });
 
   it('reads typed properties, @var properties and $this assignments', () => {
@@ -96,9 +96,9 @@ describe('properties and methods', () => {
       }
     `;
     expect(viewTypes(PRODUCT_MODEL, controller)).toEqual({
-      all: 'Product[]',
-      one: 'Product|null',
-      latest: 'Product[]',
+      all: '\\Product[]',
+      one: '\\Product|null',
+      latest: '\\Product[]',
       count: 'mixed',
       missing: 'mixed',
     });
@@ -117,7 +117,7 @@ describe('properties and methods', () => {
       }
     `;
     expect(viewTypes(code)).toEqual({
-      category: 'Category|null',
+      category: '\\Category|null',
       name: 'string',
       nullsafe: 'string|null',
     });
@@ -133,7 +133,7 @@ describe('properties and methods', () => {
         }
       }
     `;
-    expect(viewTypes(code)).toEqual({ made: 'Base', featured: 'Product', parent: 'Base' });
+    expect(viewTypes(code)).toEqual({ made: '\\Base', featured: '\\Product', parent: '\\Base' });
   });
 
   it('ignores method calls on scalar types', () => {
@@ -170,13 +170,13 @@ describe('CodeIgniter 3 loader', () => {
       }
     `;
     expect(viewTypes(controller)).toEqual({
-      products: 'Product_model',
-      users: 'User_model',
-      orders: 'Order_model',
-      categories: 'Category_model',
-      cart: 'Cart',
-      mailer: 'Email',
-      db: 'CI_DB_query_builder',
+      products: '\\Product_model',
+      users: '\\User_model',
+      orders: '\\Order_model',
+      categories: '\\Category_model',
+      cart: '\\Cart',
+      mailer: '\\Email',
+      db: '\\CI_DB_query_builder',
     });
   });
 
@@ -184,7 +184,7 @@ describe('CodeIgniter 3 loader', () => {
     const base =
       "class MY_Controller { public function __construct() { $this->load->model('product_model'); } }";
     const view = "$this->load->view('partial', ['latest' => $this->product_model->get_latest(1)]);";
-    expect(viewTypes(PRODUCT_MODEL, base, view)).toEqual({ latest: 'Product[]' });
+    expect(viewTypes(PRODUCT_MODEL, base, view)).toEqual({ latest: '\\Product[]' });
   });
 });
 

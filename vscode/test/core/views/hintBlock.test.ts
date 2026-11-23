@@ -7,7 +7,7 @@ const END = '/* viewsense:end */';
 
 const variables = new Map<string, PhpType>([
   ['title', phpType('string', 'null')],
-  ['products', phpType('Product')],
+  ['products', phpType('\\Product')],
 ]);
 
 describe('applyHintBlock', () => {
@@ -17,7 +17,7 @@ describe('applyHintBlock', () => {
     expect(applyHintBlock(view, variables)).toBe(
       [
         `<?php ${START}`,
-        '/** @var Product $products */',
+        '/** @var \\Product $products */',
         '/** @var string|null $title */',
         `${END} ?>`,
         '<h1><?= $title ?></h1>',
@@ -33,7 +33,7 @@ describe('applyHintBlock', () => {
       [
         '<?php',
         START,
-        '/** @var Product $products */',
+        '/** @var \\Product $products */',
         '/** @var string|null $title */',
         END,
         '',

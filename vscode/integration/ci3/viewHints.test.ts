@@ -37,8 +37,8 @@ suite('CodeIgniter 3 project', () => {
     await vscode.commands.executeCommand(UPDATE_COMMAND);
 
     const list = await readText(LIST_VIEW);
-    assert.match(list, /\/\*\* @var ViewSense_CI3_View \$this \*\//);
-    assert.match(list, /\/\*\* @var Product\[\] \$products \*\//);
+    assert.match(list, /\/\*\* @var \\ViewSense_CI3_View \$this \*\//);
+    assert.match(list, /\/\*\* @var \\Product\[\] \$products \*\//);
     assert.match(list, /\/\*\* @var string\|null \$title \*\//);
     assert.match(
       await readText('application/views/layouts/main.php'),
@@ -46,7 +46,7 @@ suite('CodeIgniter 3 project', () => {
     );
     assert.match(
       await readText('.viewsense/ci3_view.php'),
-      /class ViewSense_CI3_View extends CI_Loader/,
+      /class ViewSense_CI3_View extends \\CI_Loader/,
     );
     assert.equal(viewSenseDiagnostics(LIST_VIEW).length, 0);
   });
